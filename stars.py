@@ -5,6 +5,7 @@ the starfield by leftclicking in the window. This example show
 the basics of creating a window, simple pixel plotting, and input
 event management"""
 
+import os
 import wave
 import pyaudio
 import tempfile
@@ -87,9 +88,14 @@ def activeListenToAllOptions(audio_object):
         wav_fp.close()
 
 
+
+
 def play(filename):
     # FIXME: Use platform-independent audio-output here
     # See issue jasperproject/jasper-client#188
+    soundObj = pygame.mixer.Sound(filename)
+    soundObj.play()
+    return
     cmd = ['aplay', '-D', 'default', str(filename)]
     with tempfile.TemporaryFile() as f:
         subprocess.call(cmd, stdout=f, stderr=f)
@@ -115,6 +121,7 @@ def say(phrase):
         f.seek(0)
         output = f.read()
     play(fname)
+    os.remove(fname)
 
 
 def main():
@@ -171,6 +178,8 @@ def main():
                     stream.close()
 
                     end_time = time.time()
+                    if int(end_time - start_time) < 1:
+                        continue
                     filename = "rec/%d.%d" % (int(end_time), int(end_time - start_time))
                     with open(filename, "w+b") as f:
                         wav_fp = wave.open(f, 'wb')
