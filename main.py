@@ -53,7 +53,7 @@ def main():
     done = 0
     start_time = 0
 
-    pure_right_button_up = True
+    pure_right_button_up = False
     audio_object = pyaudio.PyAudio()
     while not done:
         screen.fill(black)
@@ -133,6 +133,10 @@ def main():
                         play(filename)
                     else:
                         say("no sound")
+
+                # cancel recording
+                if e.button == 4 or e.button == 5:
+                    recording = False
 
                 # save the audio data
                 if not button3 and not button1:

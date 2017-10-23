@@ -225,6 +225,25 @@ class Page():
         return True
 
 
+    def swap_statement(self):
+        length = len(self.page['sections'])
+        if length <= 0:
+            return False
+        current_section_idx = self.page['mark']
+        current_section = self.page['sections'][current_section_idx]
+        length = len(current_section['statements'])
+        if length <= 0:
+            return False
+        current_idx = current_section['mark']
+        if current_idx < 1:
+            return False
+        current_section['mark'] = current_idx - 1
+
+        a, b = current_section['statements'][current_idx], current_section['statements'][current_idx-1]
+        current_section['statements'][current_idx], current_section['statements'][current_idx-1] = a, b
+        return True
+
+
     def next_word(self):
         length = len(self.page['sections'])
         if length <= 0:
@@ -267,6 +286,31 @@ class Page():
             return False
         current_statement['mark'] = current_idx
         return True
+
+
+    def swap_word(self):
+        length = len(self.page['sections'])
+        if length <= 0:
+            return False
+        current_section_idx = self.page['mark']
+        current_section = self.page['sections'][current_section_idx]
+        length = len(current_section['statements'])
+        if length <= 0:
+            return False
+        current_statement_idx = current_section['mark']
+        current_statement = current_section['statements'][current_statement_idx]
+        length = len(current_statement['words'])
+        if length <= 0:
+            return False
+        current_idx = current_statement['mark']
+        if current_idx < 1:
+            return False
+
+        current_statement['mark'] = current_idx-1
+        a, b = current_statement['words'][current_idx], current_statement['words'][current_idx-1]
+        current_statement['words'][current_idx], current_statement['words'][current_idx-1] = a, b
+        return True
+
 
     def get_current_word_sound_filename(self):
         results = self.get_current_word_id()
@@ -368,7 +412,8 @@ class Page():
 
         elif event.type == MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
-            if b1:
+            # Nav statement
+            if b1 and not b3:
                 if event.button == 5:
                     if not self.next_statement():
                         if self.next_section():
@@ -385,7 +430,9 @@ class Page():
                             feedback += "none. "
                     else:
                         feedback += "previous statements. "
-            elif not b3:
+
+            # Nav word
+            if not b1 and not b3:
                 if event.button == 5:
                     if self.next_word():
                         feedback += "next word. "
@@ -398,13 +445,22 @@ class Page():
                         feedback += "none. "
 
             # Create
-            if b3:
+            if b3 and not b1:
                 if event.button == 5:
                     self.new_word()
                     feedback += "new word. "
                 elif event.button == 4:
                     self.new_statement()
                     feedback += "new statements. "
+
+            # Swap block
+            if b3 and b1:
+                # Swap block
+                if event.button == 5:
+                    self.swap_word()
+                elif event.button == 4:
+                    self.swap_statement()
+
 
         elif event.type == MOUSEMOTION:
             # a, b = self.last_vector

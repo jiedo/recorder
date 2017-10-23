@@ -241,6 +241,25 @@ class Library():
         return True
 
 
+    def swap_book(self):
+        length = len(self.library['shelfs'])
+        if length <= 0:
+            return False
+        current_shelf_idx = self.library['mark']
+        current_shelf = self.library['shelfs'][current_shelf_idx]
+        length = len(current_shelf['books'])
+        if length <= 0:
+            return False
+        current_idx = current_shelf['mark']
+        if current_idx < 1:
+            return False
+        current_shelf['mark'] = current_idx-1
+
+        a, b = current_shelf['books'][current_idx], current_shelf['books'][current_idx-1]
+        current_shelf['books'][current_idx], current_shelf['books'][current_idx-1] = a, b
+        return True
+
+
     def next_page(self):
         length = len(self.library['shelfs'])
         if length <= 0:
@@ -263,6 +282,7 @@ class Library():
         current_book['mark'] = current_idx
         return True
 
+
     def prev_page(self):
         length = len(self.library['shelfs'])
         if length <= 0:
@@ -283,6 +303,31 @@ class Library():
             return False
         current_book['mark'] = current_idx
         return True
+
+
+    def swap_page(self):
+        length = len(self.library['shelfs'])
+        if length <= 0:
+            return False
+        current_shelf_idx = self.library['mark']
+        current_shelf = self.library['shelfs'][current_shelf_idx]
+        length = len(current_shelf['books'])
+        if length <= 0:
+            return False
+        current_book_idx = current_shelf['mark']
+        current_book = current_shelf['books'][current_book_idx]
+        length = len(current_book['pages'])
+        if length <= 0:
+            return False
+        current_idx = current_book['mark']
+        if current_idx < 1:
+            return False
+        current_book['mark'] = current_idx-1
+
+        a, b = current_book['pages'][current_idx], current_book['pages'][current_idx-1]
+        current_book['pages'][current_idx], current_book['pages'][current_idx-1] = a, b
+        return True
+
 
     def get_current_page_sound_filename(self):
         results = self.get_current_page_id()
@@ -378,7 +423,8 @@ class Library():
 
         elif event.type == MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
-            if b1:
+            # Nav book
+            if b1 and not b3:
                 if event.button == 5:
                     if not self.next_book():
                         if self.next_shelf():
@@ -395,7 +441,9 @@ class Library():
                             feedback += "none. "
                     else:
                         feedback += "previous book. "
-            elif not b3:
+
+            # Nav page
+            if not b1 and not b3:
                 if event.button == 5:
                     if self.next_page():
                         feedback += "next page. "
@@ -406,14 +454,24 @@ class Library():
                         feedback += "previous page. "
                     else:
                         feedback += "none. "
+
             # Create
-            if b3:
+            if b3 and not b1:
                 if event.button == 5:
                     self.new_page()
                     feedback += "new page. "
                 elif event.button == 4:
                     self.new_book()
                     feedback += "new book. "
+
+            # Swap block
+            if b3 and b1:
+                # Swap block
+                if event.button == 5:
+                    self.swap_page()
+                elif event.button == 4:
+                    self.swap_book()
+
 
         elif event.type == MOUSEMOTION:
             # a, b = self.last_vector
