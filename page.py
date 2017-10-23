@@ -123,7 +123,8 @@ class Page():
             'title': "section-%d" % self.page['max_section_id'],
             'statements': []
         }
-        self.page['sections'] += [section]
+        current_idx = self.page['mark']
+        self.page['sections'][current_idx:current_idx] = [section]
 
 
     def new_statement(self):
@@ -138,7 +139,8 @@ class Page():
             'title': "statement-%d" % self.page['max_statement_id'],
             'words': []
         }
-        current_section['statements'] += [statement]
+        current_idx = current_section['mark']
+        current_section['statements'][current_idx:current_idx] = [statement]
 
 
     def new_word(self):
@@ -163,7 +165,8 @@ class Page():
             'section-id': current_section['id'],
             'statement-id': current_statement['id'],
         }
-        current_statement['words'] += [word]
+        current_idx = current_statement['mark']
+        current_statement['words'][current_idx:current_idx] = [word]
 
 
     def next_section(self):
@@ -363,6 +366,46 @@ class Page():
                 else:
                     feedback += "next statements. "
 
+        elif event.type == MOUSEBUTTONDOWN:
+            b1, b2, b3 = pygame.mouse.get_pressed()
+            if b1:
+                if event.button == 5:
+                    if not self.next_statement():
+                        if self.next_section():
+                            feedback += "next section. "
+                        else:
+                            feedback += "none. "
+                    else:
+                        feedback += "next statements. "
+                elif event.button == 4:
+                    if not self.prev_statement():
+                        if self.prev_section():
+                            feedback += "previous section. "
+                        else:
+                            feedback += "none. "
+                    else:
+                        feedback += "previous statements. "
+            elif not b3:
+                if event.button == 5:
+                    if self.next_word():
+                        feedback += "next word. "
+                    else:
+                        feedback += "none. "
+                elif event.button == 4:
+                    if self.prev_word():
+                        feedback += "previous word. "
+                    else:
+                        feedback += "none. "
+
+            # Create
+            if b3:
+                if event.button == 5:
+                    self.new_word()
+                    feedback += "new word. "
+                elif event.button == 4:
+                    self.new_statement()
+                    feedback += "new statements. "
+
         elif event.type == MOUSEMOTION:
             # a, b = self.last_vector
             # c, d = event.rel
@@ -420,39 +463,6 @@ class Page():
                     self.prev_word()
                     x += diff
             self.last_pos = (x, y)
-
-        elif event.type == MOUSEBUTTONDOWN:
-            b1, b2, b3 = pygame.mouse.get_pressed()
-            if b1:
-                if event.button == 5:
-                    if not self.next_statement():
-                        if self.next_section():
-                            feedback += "next section. "
-                        else:
-                            feedback += "none. "
-                    else:
-                        feedback += "next statements. "
-                elif event.button == 4:
-                    if not self.prev_statement():
-                        if self.prev_section():
-                            feedback += "previous section. "
-                        else:
-                            feedback += "none. "
-                    else:
-                        feedback += "previous statements. "
-
-            else:
-                if event.button == 5:
-                    if self.next_word():
-                        feedback += "next word. "
-                    else:
-                        feedback += "none. "
-                elif event.button == 4:
-                    if self.prev_word():
-                        feedback += "previous word. "
-                    else:
-                        feedback += "none. "
-
 
             # mod = pygame.key.get_mods()
             # if e.button == 5:

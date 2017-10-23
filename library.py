@@ -129,7 +129,8 @@ class Library():
             'title': "shelf-%d" % self.library['max_shelf_id'],
             'books': []
         }
-        self.library['shelfs'] += [shelf]
+        current_idx = self.library['mark']
+        self.library['shelfs'][current_idx:current_idx] = [shelf]
 
 
     def new_book(self):
@@ -144,7 +145,8 @@ class Library():
             'title': "book-%d" % self.library['max_book_id'],
             'pages': []
         }
-        current_shelf['books'] += [book]
+        current_idx = current_shelf['mark']
+        current_shelf['books'][current_idx:current_idx] = [book]
 
 
     def new_page(self):
@@ -169,7 +171,9 @@ class Library():
             'max_statement_id': 0,
             'max_word_id': 0,
         }
-        current_book['pages'] += [{
+
+        current_idx = current_book['mark']
+        current_book['pages'][current_idx:current_idx] = [{
             "id": self.library['max_page_id'],
             "create_time": 0,
             "update_time": 0,
@@ -344,6 +348,7 @@ class Library():
                 self.new_page()
                 feedback += "create page. "
 
+
             if event.key == K_h:
                 if self.prev_page():
                     feedback += "previous page. "
@@ -354,7 +359,6 @@ class Library():
                     feedback += "next page. "
                 else:
                     feedback += "none. "
-
             if event.key == K_k:
                 if not self.prev_book():
                     if self.prev_shelf():
@@ -371,6 +375,45 @@ class Library():
                         feedback += "none. "
                 else:
                     feedback += "previous book. "
+
+        elif event.type == MOUSEBUTTONDOWN:
+            b1, b2, b3 = pygame.mouse.get_pressed()
+            if b1:
+                if event.button == 5:
+                    if not self.next_book():
+                        if self.next_shelf():
+                            feedback += "next shelf. "
+                        else:
+                            feedback += "none. "
+                    else:
+                        feedback += "next book. "
+                elif event.button == 4:
+                    if not self.prev_book():
+                        if self.prev_shelf():
+                            feedback += "previous shelf. "
+                        else:
+                            feedback += "none. "
+                    else:
+                        feedback += "previous book. "
+            elif not b3:
+                if event.button == 5:
+                    if self.next_page():
+                        feedback += "next page. "
+                    else:
+                        feedback += "none. "
+                elif event.button == 4:
+                    if self.prev_page():
+                        feedback += "previous page. "
+                    else:
+                        feedback += "none. "
+            # Create
+            if b3:
+                if event.button == 5:
+                    self.new_page()
+                    feedback += "new page. "
+                elif event.button == 4:
+                    self.new_book()
+                    feedback += "new book. "
 
         elif event.type == MOUSEMOTION:
             # a, b = self.last_vector
@@ -429,38 +472,6 @@ class Library():
                     self.prev_page()
                     x += diff
             self.last_pos = (x, y)
-
-        elif event.type == MOUSEBUTTONDOWN:
-            b1, b2, b3 = pygame.mouse.get_pressed()
-            if b1:
-                if event.button == 5:
-                    if not self.next_book():
-                        if self.next_shelf():
-                            feedback += "next shelf. "
-                        else:
-                            feedback += "none. "
-                    else:
-                        feedback += "next book. "
-                elif event.button == 4:
-                    if not self.prev_book():
-                        if self.prev_shelf():
-                            feedback += "previous shelf. "
-                        else:
-                            feedback += "none. "
-                    else:
-                        feedback += "previous book. "
-            else:
-                if event.button == 5:
-                    if self.next_page():
-                        feedback += "next page. "
-                    else:
-                        feedback += "none. "
-                elif event.button == 4:
-                    if self.prev_page():
-                        feedback += "previous page. "
-                    else:
-                        feedback += "none. "
-
 
             # mod = pygame.key.get_mods()
             # if e.button == 5:

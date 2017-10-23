@@ -66,9 +66,16 @@ def main():
         pygame.display.update()
 
         for e in pygame.event.get():
-
             if mode == MODE_LIBRARY:
-                if (e.type == KEYUP and e.key == K_RETURN) or (e.type == MOUSEBUTTONDOWN and e.button == 2):
+                feedback = library.on_event(e)
+            else:
+                feedback = page.on_event(e)
+            if feedback:
+                say(feedback)
+
+            ### keys
+            if (e.type == KEYUP and e.key == K_RETURN) or (e.type == MOUSEBUTTONDOWN and e.button == 2):
+                if mode == MODE_LIBRARY:
                     results = library.get_current_page_id()
                     if not results:
                         say("ignored")
@@ -78,13 +85,9 @@ def main():
                     page.load_page(page_id)
                     mode = MODE_PAGE
                     continue
-
-            if mode == MODE_LIBRARY:
-                feedback = library.on_event(e)
-            else:
-                feedback = page.on_event(e)
-            if feedback:
-                say(feedback)
+                else:
+                    mode = MODE_LIBRARY
+                    page.store_page()
 
             if e.type == QUIT or (e.type == KEYUP and e.key == K_ESCAPE):
                 if mode == MODE_LIBRARY:
@@ -93,16 +96,18 @@ def main():
                     done = 1
                     break
                 else:
-                    page.store_page()
                     mode = MODE_LIBRARY
+                    page.store_page()
 
-            elif e.type == MOUSEBUTTONDOWN:
+            ### mouse
+            if e.type == MOUSEBUTTONDOWN:
                 button1, button2, button3 = pygame.mouse.get_pressed()
                 if button3:
                     pure_right_button_up = True
-                if button1 or button2:
+                if button1 or button2 or e.button != 3:
                     pure_right_button_up = False
 
+                # start record
                 if button3 and button1:
                     recording = True
                     play('beep_hi.wav')
@@ -117,8 +122,8 @@ def main():
 
             elif e.type == MOUSEBUTTONUP:
                 button1, button2, button3 = pygame.mouse.get_pressed()
+                # play
                 if e.button == 3 and pure_right_button_up:
-                    # play
                     pure_right_button_up = False
                     if mode == MODE_LIBRARY:
                         filename, create_time = library.get_current_page_sound_filename()
@@ -129,9 +134,9 @@ def main():
                     else:
                         say("no sound")
 
+                # save the audio data
                 if not button3 and not button1:
                     if recording:
-                        # save the audio data
                         recording = False
                         stream.stop_stream()
                         stream.close()
