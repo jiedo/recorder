@@ -16,11 +16,13 @@ import time
 import json
 
 #constants
-WIN_HEIGHT = 3800
-WIN_WIDTH = 1900
+WIN_HEIGHT = 1024
+WIN_WIDTH = 1280
 WINSIZE = [WIN_WIDTH, WIN_HEIGHT]
+SIZEBLOCK = 20
 
 g_library = {}
+g_rect_need_draw = []
 
 
 def load_library():
@@ -34,47 +36,61 @@ def store_library():
     open("library.json", "w").write(g_library_string)
 
 
+def update_library_display(surface):
+    global g_rect_need_draw
+    g_rect_need_draw.reverse()
+    for color, rect in g_rect_need_draw:
+        pygame.draw.rect(surface, color, rect, 0)
+    g_rect_need_draw = []
+
+
 def draw_rect(surface, color, rect, width=1):
-    times = 2
+    global g_rect_need_draw
+    times = 1
     offset = width * times
-    if width == 6:
-        times = 0
-    pygame.draw.rect(surface, color, rect.inflate(-offset, -offset), times)
+    g_rect_need_draw += [(color, rect.inflate(-offset, -offset))]
+
+    # pygame.draw.rect(surface, color, rect.inflate(-offset, -offset), times)
 
 
-def draw_page(surface, page, is_current, rect):
+def draw_page(surface, page, is_current_shelf, is_current_book, is_current, rect):
     "used to draw (and clear) the stars"
 
+    color = (40, 40, 40)
     if is_current:
-        color = (200, 200, 200)
-    else:
-        color = (50, 50, 50)
+        if is_current_shelf:
+            if is_current_book:
+                color = (0, 180, 180)
+            else:
+                color = (180, 180, 180)
 
-    draw_rect(surface, color, rect, width=6)
+    draw_rect(surface, color, rect, width=3)
     #return width, height
 
 
-def draw_book(surface, book, is_current, pos=0):
+def draw_book(surface, book, is_current_shelf, is_current, pos=0):
     "used to draw (and clear) the stars"
     pagei = book["mark"]
 
     left = 0
     top  = pos
 
-    width = 40
-    height = 40
+    width = SIZEBLOCK
+    height = SIZEBLOCK
 
-    if is_current:
-        color = (140, 140, 140)
+    if is_current_shelf:
+        color = (10, 10, 10)
+        if is_current:
+            color = (110, 110, 110)
     else:
-        color = (20, 20, 20)
+        color = (1, 1, 1)
 
     # book_rect = pygame.Rect(0, pos, WIN_WIDTH, height)
     # draw_rect(surface, color, book_rect, width=6)
 
     for idx, page in enumerate(book["pages"]):
         rect = pygame.Rect(left, top, width, height)
-        draw_page(surface, page, idx==pagei, rect)
+        draw_page(surface, page, is_current_shelf, is_current, idx==pagei, rect)
 
         left += width
         if width > WIN_WIDTH - left:
@@ -82,7 +98,7 @@ def draw_book(surface, book, is_current, pos=0):
             top += height
 
     book_rect = pygame.Rect(0, pos, WIN_WIDTH, top+height - pos)
-    draw_rect(surface, color, book_rect, width=4)
+    draw_rect(surface, color, book_rect, width=2)
     return top+height - pos
 
 
@@ -91,16 +107,16 @@ def draw_shelf(surface, shelf, is_current, pos=0):
     booki = shelf["mark"]
     top = pos
     for idx, book in enumerate(shelf["books"]):
-        height = draw_book(surface, book, idx==booki, top)
+        height = draw_book(surface, book, is_current, idx==booki, top)
         top += height
 
-    if is_current:
-        color = (0, 230, 230)
-    else:
-        color = (0, 80, 80)
+    # if is_current:
+    #     color = (100, 100, 100)
+    # else:
+    color = (0, 0, 0)
 
     shelf_rect = pygame.Rect(0, pos, WIN_WIDTH, top - pos)
-    draw_rect(surface, color, shelf_rect, width=2)
+    draw_rect(surface, color, shelf_rect, width=1)
     return top - pos
 
 
@@ -116,7 +132,7 @@ def draw_library(surface, pos=0):
     for idx, shelf in enumerate(g_library["shelfs"]):
         height = draw_shelf(surface, shelf, idx==shelfi, pos)
         pos += height
-
+    update_library_display(surface)
 
 
 def new_shelf():
@@ -198,21 +214,22 @@ def next_book():
 
     length = len(g_library['shelfs'])
     if length <= 0:
-        return
+        return False
 
     current_shelf_idx = g_library['mark']
     current_shelf = g_library['shelfs'][current_shelf_idx]
 
     length = len(current_shelf['books'])
     if length <= 0:
-        return
+        return False
 
     current_idx = current_shelf['mark']
     current_idx += 1
     if current_idx >= length:
-        return
+        return False
 
     current_shelf['mark'] = current_idx
+    return True
 
 
 def prev_book():
@@ -220,21 +237,22 @@ def prev_book():
 
     length = len(g_library['shelfs'])
     if length <= 0:
-        return
+        return False
 
     current_shelf_idx = g_library['mark']
     current_shelf = g_library['shelfs'][current_shelf_idx]
 
     length = len(current_shelf['books'])
     if length <= 0:
-        return
+        return False
 
     current_idx = current_shelf['mark']
     current_idx -= 1
     if current_idx < 0:
-        return
+        return False
 
     current_shelf['mark'] = current_idx
+    return True
 
 
 def next_page():
@@ -291,7 +309,6 @@ def prev_page():
     if current_idx < 0:
         return
     current_book['mark'] = current_idx
-
 
 
 
@@ -416,43 +433,47 @@ def main():
             elif e.type == MOUSEMOTION:
                 dx, dy = e.rel
 
-                diff = 100
+                diff = SIZEBLOCK/2
 
                 x, y = last_pos
-                x += dx
-                y += dy
-                if x >= diff:
-                    next_shelf()
-                    x=0
-                elif x <= -diff:
-                    prev_shelf()
-                    x= 0
 
-                if y >= diff:
-                    next_book()
-                    y=0
-                elif y <= -diff:
-                    prev_book()
-                    y=0
+                if e.buttons[0]:
+                    x += dx
+                    if x >= diff:
+                        next_page()
+                        x=0
+                    elif x <= -diff:
+                        prev_page()
+                        x= 0
+                else:
+                    y += dy
+                    if y >= diff:
+                        if not next_book():
+                            next_shelf()
+                        y=0
+                    elif y <= -diff:
+                        if not prev_book():
+                            prev_shelf()
+                        y=0
 
                 last_pos = (x, y)
 
             elif e.type == MOUSEBUTTONDOWN:
                 mod = pygame.key.get_mods()
 
-                if e.button == 1:
-                    recording = True
-                    play('beep_hi.wav')
-                    start_time = time.time()
-                    # prepare recording stream
-                    stream = audio_object.open(format=pyaudio.paInt16,
-                               channels=1,
-                               rate=RATE,
-                               input=True,
-                               frames_per_buffer=CHUNK)
-                    frames = []
+                # if e.button == 1:
+                #     recording = True
+                #     play('beep_hi.wav')
+                #     start_time = time.time()
+                #     # prepare recording stream
+                #     stream = audio_object.open(format=pyaudio.paInt16,
+                #                channels=1,
+                #                rate=RATE,
+                #                input=True,
+                #                frames_per_buffer=CHUNK)
+                #     frames = []
 
-                elif e.button == 5:
+                if e.button == 5:
                     if mod & KMOD_CTRL:
                         next_book()
                     elif mod & KMOD_ALT:
@@ -470,25 +491,24 @@ def main():
 
 
             elif e.type == MOUSEBUTTONUP:
-                if e.button == 1:
-                    # save the audio data
-                    recording = False
-                    stream.stop_stream()
-                    stream.close()
-
-                    end_time = time.time()
-                    if int(end_time - start_time) < 1:
-                        continue
-                    filename = "rec/%d.%d" % (int(end_time), int(end_time - start_time))
-                    with open(filename, "w+b") as f:
-                        wav_fp = wave.open(f, 'wb')
-                        wav_fp.setnchannels(1)
-                        wav_fp.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
-                        wav_fp.setframerate(RATE)
-                        wav_fp.writeframes(''.join(frames))
-                        wav_fp.close()
-
-                    play('beep_lo.wav')
+                pass
+                # if e.button == 1:
+                #     # save the audio data
+                #     recording = False
+                #     stream.stop_stream()
+                #     stream.close()
+                #     end_time = time.time()
+                #     if int(end_time - start_time) < 1:
+                #         continue
+                #     filename = "rec/%d.%d" % (int(end_time), int(end_time - start_time))
+                #     with open(filename, "w+b") as f:
+                #         wav_fp = wave.open(f, 'wb')
+                #         wav_fp.setnchannels(1)
+                #         wav_fp.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
+                #         wav_fp.setframerate(RATE)
+                #         wav_fp.writeframes(''.join(frames))
+                #         wav_fp.close()
+                #     play('beep_lo.wav')
 
         if recording:
             for i in range(0, RATE / CHUNK * LISTEN_TIME/10):
