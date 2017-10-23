@@ -16,23 +16,24 @@ import time
 import json
 
 
-class page():
+class Page():
     def __init__(self, width, blocksize):
         self.WIN_WIDTH = width
         self.SIZEBLOCK = blocksize
+
+    def load_page(self, pageid):
+        self.pageid = pageid
+        self.page = json.loads(open("pages/page-%d.json" % self.pageid).read())
+        self.rect_need_draw = []
         self.last_pos = (0, 0)
         self.last_vector = (0, 0)
         self.total_angle = 0
 
 
-    def load_page(self):
-        self.page = json.loads(open("page.json").read())
-        self.rect_need_draw = []
-
-
     def store_page(self):
-        page_string = json.dumps(self.page)
-        open("page.json", "w").write(page_string)
+        page_string = json.dumps(self.page, indent=2)
+        open("pages/page-%d.json" % self.pageid,
+             "w").write(page_string)
 
 
     def update_page_display(self, surface):
@@ -43,8 +44,7 @@ class page():
 
 
     def draw_rect(self, surface, color, rect, margin=1):
-        times = 1
-        offset = margin * times
+        offset = margin
         self.rect_need_draw += [(color, rect.inflate(-offset, -offset))]
 
 
@@ -53,7 +53,7 @@ class page():
         if is_current:
             if is_current_section:
                 if is_current_statement:
-                    color = (0, 180, 180)
+                    color = (0, 200, 0)
                 else:
                     color = (180, 180, 180)
         self.draw_rect(surface, color, rect, margin=6)
@@ -116,14 +116,7 @@ class page():
 
 
     def new_section(self):
-        if 'sections' not in self.page:
-            self.page['sections'] = []
-            self.page['mark'] = 0
-            self.page['max_section_id'] = 1
-            self.page['max_statement_id'] = 0
-            self.page['max_word_id'] = 0
-        else:
-            self.page['max_section_id'] += 1
+        self.page['max_section_id'] += 1
         section = {
             'mark': 0,
             'id': self.page['max_section_id'],
@@ -135,6 +128,8 @@ class page():
 
     def new_statement(self):
         current_section_idx = self.page['mark']
+        if len(self.page['sections']) == 0:
+            self.new_section()
         current_section = self.page['sections'][current_section_idx]
         self.page['max_statement_id'] += 1
         statement = {
@@ -148,52 +143,50 @@ class page():
 
     def new_word(self):
         current_section_idx = self.page['mark']
+        if len(self.page['sections']) == 0:
+            self.new_section()
         current_section = self.page['sections'][current_section_idx]
-        length = len(current_section['statements'])
-        if length <= 0:
-            return
+        if len(current_section['statements']) == 0:
+            self.new_statement()
         current_statement_idx = current_section['mark']
         current_statement = current_section['statements'][current_statement_idx]
         self.page['max_word_id'] += 1
         word = {
-            'mark-p': 0,
-            'mark-s': 0,
-            'mark-w': 0,
             'id': self.page['max_word_id'],
             'title': "word-%d" % self.page['max_word_id'],
+            'timestamp': 0,
+            'create_time': 0,
+            'update_time': 0,
+            'start': 0,
+            'end': 0,
+            'ancher': {'pageid': 0, 'ancher': ""},
             'section-id': current_section['id'],
             'statement-id': current_statement['id'],
-            'body': []
         }
-        current_statement['words'] += [self.page['max_word_id']]
-
-        word_string = json.dumps(word)
-        open("words/word-%d.json" % word['id'],
-             "w").write(word_string)
+        current_statement['words'] += [word]
 
 
     def next_section(self):
         length = len(self.page['sections'])
         if length <= 0:
-            return
+            return False
         current_idx = self.page['mark']
         current_idx += 1
         if current_idx >= length:
-            return
+            return False
         self.page['mark'] = current_idx
-
+        return True
 
     def prev_section(self):
         length = len(self.page['sections'])
         if length <= 0:
-            return
+            return False
         current_idx = self.page['mark']
         current_idx -= 1
         if current_idx < 0:
-            return
-
+            return False
         self.page['mark'] = current_idx
-
+        return True
 
     def next_statement(self):
         length = len(self.page['sections'])
@@ -232,57 +225,143 @@ class page():
     def next_word(self):
         length = len(self.page['sections'])
         if length <= 0:
-            return
+            return False
         current_section_idx = self.page['mark']
         current_section = self.page['sections'][current_section_idx]
         length = len(current_section['statements'])
         if length <= 0:
-            return
+            return False
         current_statement_idx = current_section['mark']
         current_statement = current_section['statements'][current_statement_idx]
 
         length = len(current_statement['words'])
         if length <= 0:
-            return
+            return False
         current_idx = current_statement['mark']
         current_idx += 1
         if current_idx >= length:
-            return
+            return False
         current_statement['mark'] = current_idx
-
+        return True
 
     def prev_word(self):
         length = len(self.page['sections'])
         if length <= 0:
-            return
+            return False
         current_section_idx = self.page['mark']
         current_section = self.page['sections'][current_section_idx]
         length = len(current_section['statements'])
         if length <= 0:
-            return
+            return False
         current_statement_idx = current_section['mark']
         current_statement = current_section['statements'][current_statement_idx]
         length = len(current_statement['words'])
         if length <= 0:
-            return
+            return False
         current_idx = current_statement['mark']
         current_idx -= 1
         if current_idx < 0:
-            return
+            return False
         current_statement['mark'] = current_idx
+        return True
+
+    def get_current_word_sound_filename(self):
+        results = self.get_current_word_id()
+        if not results:
+            return "", 0
+        shelf_id, book_id, page_id, word_id, create_time = results
+        filename = "sounds/shelf.%d-book.%d-page.%d-word.%d.wav" % (shelf_id, book_id, page_id, word_id)
+        return filename, create_time
+
+
+    def get_current_word_id(self):
+        length = len(self.page['sections'])
+        if length <= 0:
+            return 0
+        current_section_idx = self.page['mark']
+        current_section = self.page['sections'][current_section_idx]
+        length = len(current_section['statements'])
+        if length <= 0:
+            return 0
+        current_statement_idx = current_section['mark']
+        current_statement = current_section['statements'][current_statement_idx]
+        length = len(current_statement['words'])
+        if length <= 0:
+            return 0
+        current_idx = current_statement['mark']
+        if current_idx < 0 or current_idx >= length:
+            return 0
+        return self.page['shelf-id'], self.page['book-id'], self.page['id'], current_statement['words'][current_idx]['id'], current_statement['words'][current_idx]['create_time']
+
+
+    def set_current_word(self, create_time, update_time):
+        length = len(self.page['sections'])
+        if length <= 0:
+            return 0
+        current_section_idx = self.page['mark']
+        current_section = self.page['sections'][current_section_idx]
+        length = len(current_section['statements'])
+        if length <= 0:
+            return 0
+        current_statement_idx = current_section['mark']
+        current_statement = current_section['statements'][current_statement_idx]
+        length = len(current_statement['words'])
+        if length <= 0:
+            return 0
+        current_idx = current_statement['mark']
+        if current_idx < 0 or current_idx >= length:
+            return 0
+        word = current_statement['words'][current_idx]
+        word['create_time'] = create_time
+        word['update_time'] = update_time
 
 
     def on_event(self, event):
-        if event.type == QUIT or (event.type == KEYUP and event.key == K_ESCAPE):
-            self.store_page()
-
-        elif event.type == KEYUP:
-            if event.key == K_b:
-                self.new_statement()
-            elif event.key == K_s:
+        feedback = ""
+        if event.type == KEYUP:
+            if event.key == K_3:
                 self.new_section()
-            elif event.key == K_p:
+                feedback += "new section. "
+            elif event.key == K_2:
+                self.new_statement()
+                feedback += "new statements. "
+            elif event.key == K_1:
                 self.new_word()
+                feedback += "new word. "
+            # if event.key == K_RETURN:
+            #     if event.mod & KMOD_CTRL:
+            #         self.new_section()
+            #     else:
+            #         self.new_statement()
+            # elif event.key == K_SPACE:
+            #     self.new_word()
+
+            if event.key == K_h:
+                if self.prev_word():
+                    feedback += "previous word. "
+                else:
+                    feedback += "none. "
+            elif event.key == K_l:
+                if self.next_word():
+                    feedback += "next word. "
+                else:
+                    feedback += "none. "
+            if event.key == K_k:
+                if not self.prev_statement():
+                    if self.prev_section():
+                        feedback += "previous section. "
+                    else:
+                        feedback += "none. "
+                else:
+                    feedback += "previous statements. "
+            elif event.key == K_j:
+                if not self.next_statement():
+                    if self.next_section():
+                        feedback += "next section. "
+                    else:
+                        feedback += "none. "
+                else:
+                    feedback += "next statements. "
 
         elif event.type == MOUSEMOTION:
             # a, b = self.last_vector
@@ -322,7 +401,7 @@ class page():
                 dy = dy*dy/dt
             else:
                 dy = -dy*dy/dt
-            if b3:
+            if b1:
                 y += dy
                 while y >= diff:
                     if not self.next_statement():
@@ -344,16 +423,36 @@ class page():
 
         elif event.type == MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
-            if b3:
+            if b1:
                 if event.button == 5:
-                    self.next_statement()
+                    if not self.next_statement():
+                        if self.next_section():
+                            feedback += "next section. "
+                        else:
+                            feedback += "none. "
+                    else:
+                        feedback += "next statements. "
                 elif event.button == 4:
-                    self.prev_statement()
+                    if not self.prev_statement():
+                        if self.prev_section():
+                            feedback += "previous section. "
+                        else:
+                            feedback += "none. "
+                    else:
+                        feedback += "previous statements. "
+
             else:
                 if event.button == 5:
-                    self.next_word()
+                    if self.next_word():
+                        feedback += "next word. "
+                    else:
+                        feedback += "none. "
                 elif event.button == 4:
-                    self.prev_word()
+                    if self.prev_word():
+                        feedback += "previous word. "
+                    else:
+                        feedback += "none. "
+
 
             # mod = pygame.key.get_mods()
             # if e.button == 5:
@@ -371,3 +470,4 @@ class page():
             #         prev_section()
             #     else:
             #         prev_word()
+        return feedback
