@@ -55,8 +55,8 @@ def main():
                 feedback = library.on_event(e)
             else:
                 feedback = page.on_event(e)
-            if feedback:
-                say(feedback)
+            # if feedback:
+            #     say(feedback)
 
             ### keys
             if (e.type == KEYUP and e.key == K_RETURN) or (e.type == MOUSEBUTTONDOWN and e.button == 2):
@@ -130,9 +130,15 @@ def main():
                         mode = MODE_PAGE
                         continue
                     else:
-                        mode = MODE_LIBRARY
-                        page.store_page()
-                        say("back to library")
+                        word = page.get_current_word()
+                        if word['type'] == 'Close':
+                            mode = MODE_LIBRARY
+                            page.store_page()
+                            say("back to library")
+                        elif word['type'] == 'Word':
+                            say(word['title'])
+                        elif word['type'] == 'Time':
+                            say(time.ctime())
 
                 # only right click, then play
                 if e.button == 3 and pure_right_button_up:
@@ -161,6 +167,10 @@ def main():
         recorder.breath()
         clock.tick(50)
     recorder.terminate()
+
+
+
+
 
 # if python says run, then we should run
 if __name__ == '__main__':

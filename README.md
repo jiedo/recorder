@@ -24,3 +24,26 @@ Mouse Button1 + Button3 + Wheel forward: swap with previous book/statement
 Mouse Button1 + Button3 + Wheel back: swap with next page/word
 
 Mouse Button1 + Button3 Hold: record sound to a page/word
+
+
+# Word Types
+
+* Close
+
+Click to close page.
+
+* Word
+
+speak the word text.
+
+* Page
+
+Follow to another page.
+
+* Time
+
+Report time now.
+
+* Link
+
+open a web link.

@@ -29,7 +29,10 @@ class Library():
 
 
     def load_library(self):
-        self.library = json.loads(open("library.json").read())
+        try:
+            self.library = json.loads(open("library.json").read())
+        except:
+            self.library = {}
         self.rect_need_draw = []
 
 
@@ -178,11 +181,36 @@ class Library():
             'title': "page-%d" % self.library['max_page_id'],
             'shelf-id': current_shelf['id'],
             'book-id': current_book['id'],
-            'sections': [],
+            'sections': [{
+                "title": "section-1",
+                "statements": [{
+                    "title": "statement-1",
+                    "id": 1,
+                    "words": [{
+                        "type": "Close", # Close/Word/Page/Time/Link/...
+                        "start": 0,
+                        "update_time": 0,
+                        "create_time": 0,
+                        "end": 0,
+                        "statement-id": 1,
+                        "title": "word-1",
+                        "timestamp": 0,
+                        "section-id": 1,
+                        "id": 1,
+                        "ancher": {
+                            "pageid": 0,
+                            "ancher": ""
+                        }
+                    }],
+                    "mark": 0
+                }],
+                "id": 1,
+                "mark": 0
+            }],
             'mark': 0,
-            'max_section_id': 0,
-            'max_statement_id': 0,
-            'max_word_id': 0,
+            'max_section_id': 1,
+            'max_statement_id': 1,
+            'max_word_id': 1,
         }
         current_idx = current_book['mark']
         current_book['pages'][current_idx:current_idx] = [{

@@ -169,6 +169,7 @@ class Page():
         self.page['max_word_id'] += 1
         word = {
             'id': self.page['max_word_id'],
+            'type': 'Word',
             'title': "word-%d" % self.page['max_word_id'],
             'timestamp': 0,
             'create_time': 0,
@@ -327,15 +328,16 @@ class Page():
 
 
     def get_current_word_sound_filename(self):
-        results = self.get_current_word_id()
-        if not results:
+        word = self.get_current_word()
+        if not word:
             return "", 0
-        shelf_id, book_id, page_id, word_id, create_time = results
+        shelf_id, book_id, page_id, word_id, create_time = (self.page['shelf-id'], self.page['book-id'], self.page['id'],
+                                                            word['id'], word['create_time'])
         filename = "sounds/shelf.%d-book.%d-page.%d-word.%d.wav" % (shelf_id, book_id, page_id, word_id)
         return filename, create_time
 
 
-    def get_current_word_id(self):
+    def get_current_word(self):
         length = len(self.page['sections'])
         if length <= 0:
             return 0
@@ -352,7 +354,7 @@ class Page():
         current_idx = current_statement['mark']
         if current_idx < 0 or current_idx >= length:
             return 0
-        return self.page['shelf-id'], self.page['book-id'], self.page['id'], current_statement['words'][current_idx]['id'], current_statement['words'][current_idx]['create_time']
+        return current_statement['words'][current_idx]
 
 
     def set_current_word(self, create_time, update_time):
@@ -389,7 +391,6 @@ class Page():
             elif event.key == K_1:
                 self.new_word()
                 feedback += "new word. "
-
 
             if event.key == K_h:
                 if self.prev_word():
