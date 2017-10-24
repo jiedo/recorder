@@ -29,6 +29,10 @@ class Page():
         self.last_vector = (0, 0)
         self.total_angle = 0
 
+        self.pos_to_mark = {}
+        self.runtime_row = 0
+        self.runtime_col = 0
+
 
     def store_page(self):
         page_string = json.dumps(self.page, indent=2)
@@ -59,7 +63,7 @@ class Page():
         self.draw_rect(surface, color, rect, margin=6)
 
 
-    def draw_statement(self, surface, statement, is_current_section, is_current, pos=0):
+    def draw_statement(self, surface, statement, is_current_section, is_current, sectionidx, statementidx, pos=0):
         wordi = statement["mark"]
         left = 0
         top  = pos
@@ -68,10 +72,17 @@ class Page():
         for idx, word in enumerate(statement["words"]):
             rect = pygame.Rect(left, top, width, height)
             self.draw_word(surface, word, is_current_section, is_current, idx==wordi, rect)
+            self.pos_to_mark[(self.runtime_row, self.runtime_col)] = (sectionidx, statementidx, idx)
+            self.runtime_col += 1
             left += width
-            if width > self.WIN_WIDTH - left:
+            if idx < len(statement["words"])-1 and width > self.WIN_WIDTH - left:
+                self.runtime_row += 1
+                self.runtime_col = 0
                 left = 0
                 top += height
+        self.runtime_row += 1
+        self.runtime_col = 0
+
         if is_current_section:
             if top - pos >= height:
                 color = (200, 200, 200)
@@ -88,11 +99,11 @@ class Page():
         return top+height - pos
 
 
-    def draw_section(self, surface, section, is_current, pos=0):
+    def draw_section(self, surface, section, is_current, sectionidx, pos=0):
         statementi = section["mark"]
         top = pos
         for idx, statement in enumerate(section["statements"]):
-            height = self.draw_statement(surface, statement, is_current, idx==statementi, top)
+            height = self.draw_statement(surface, statement, is_current, idx==statementi, sectionidx, idx, top)
             top += height
         if is_current:
             color = (200, 200, 200)
@@ -108,9 +119,12 @@ class Page():
     def draw_page(self, surface, pos=0):
         if "mark" not in self.page:
             return
+        self.runtime_row = 0
+        self.runtime_col = 0
+        self.pos_to_mark = {}
         sectioni = self.page["mark"]
         for idx, section in enumerate(self.page["sections"]):
-            height = self.draw_section(surface, section, idx==sectioni, pos)
+            height = self.draw_section(surface, section, idx==sectioni, idx, pos)
             pos += height
         self.update_page_display(surface)
 
@@ -239,8 +253,8 @@ class Page():
             return False
         current_section['mark'] = current_idx - 1
 
-        a, b = current_section['statements'][current_idx], current_section['statements'][current_idx-1]
-        current_section['statements'][current_idx], current_section['statements'][current_idx-1] = a, b
+        a, b = current_section['statements'][current_idx-1], current_section['statements'][current_idx]
+        current_section['statements'][current_idx-1], current_section['statements'][current_idx] = b, a
         return True
 
 
@@ -265,6 +279,7 @@ class Page():
             return False
         current_statement['mark'] = current_idx
         return True
+
 
     def prev_word(self):
         length = len(self.page['sections'])
@@ -303,12 +318,11 @@ class Page():
         if length <= 0:
             return False
         current_idx = current_statement['mark']
-        if current_idx < 1:
+        if current_idx >= length-1:
             return False
-
-        current_statement['mark'] = current_idx-1
-        a, b = current_statement['words'][current_idx], current_statement['words'][current_idx-1]
-        current_statement['words'][current_idx], current_statement['words'][current_idx-1] = a, b
+        current_statement['mark'] = current_idx+1
+        a, b = current_statement['words'][current_idx], current_statement['words'][current_idx+1]
+        current_statement['words'][current_idx], current_statement['words'][current_idx+1] = b, a
         return True
 
 
@@ -375,13 +389,7 @@ class Page():
             elif event.key == K_1:
                 self.new_word()
                 feedback += "new word. "
-            # if event.key == K_RETURN:
-            #     if event.mod & KMOD_CTRL:
-            #         self.new_section()
-            #     else:
-            #         self.new_statement()
-            # elif event.key == K_SPACE:
-            #     self.new_word()
+
 
             if event.key == K_h:
                 if self.prev_word():
@@ -461,8 +469,19 @@ class Page():
                 elif event.button == 4:
                     self.swap_statement()
 
-
         elif event.type == MOUSEMOTION:
+            #Nav by point to
+            x, y = event.pos
+            col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK
+            (sectioni, statementi, wordi) = self.pos_to_mark.get((row, col), (-1, -1, -1))
+            if sectioni >= 0:
+                self.page['mark'] = sectioni
+            if statementi >= 0:
+                self.page['sections'][sectioni]['mark'] = statementi
+            if wordi >= 0:
+                self.page['sections'][sectioni]['statements'][statementi]['mark'] = wordi
+
+            #Nav by draw circle and button
             # a, b = self.last_vector
             # c, d = event.rel
             # b1, b2, b3 = event.buttons
@@ -487,38 +506,41 @@ class Page():
             #         self.prev_word()
             #         self.total_angle += diff
 
-            b1, b2, b3 = event.buttons
-            diff = self.SIZEBLOCK
-            dx, dy = event.rel
-            x, y = self.last_pos
-            dt = 4
-            if dx > 0:
-                dx = dx*dx/dt
-            else:
-                dx = -dx*dx/dt
-            if dy > 0:
-                dy = dy*dy/dt
-            else:
-                dy = -dy*dy/dt
-            if b1:
-                y += dy
-                while y >= diff:
-                    if not self.next_statement():
-                        self.next_section()
-                    y-=diff
-                while y <= -diff:
-                    if not self.prev_statement():
-                        self.prev_section()
-                    y+=diff
-            else:
-                x += dx
-                while x >= diff:
-                    self.next_word()
-                    x -= diff
-                while x <= -diff:
-                    self.prev_word()
-                    x += diff
-            self.last_pos = (x, y)
+
+            #Nav by wheel and button
+            # b1, b2, b3 = event.buttons
+            # diff = self.SIZEBLOCK
+            # dx, dy = event.rel
+            # x, y = self.last_pos
+            # dt = 4
+            # if dx > 0:
+            #     dx = dx*dx/dt
+            # else:
+            #     dx = -dx*dx/dt
+            # if dy > 0:
+            #     dy = dy*dy/dt
+            # else:
+            #     dy = -dy*dy/dt
+            # if b1:
+            #     y += dy
+            #     while y >= diff:
+            #         if not self.next_statement():
+            #             self.next_section()
+            #         y-=diff
+            #     while y <= -diff:
+            #         if not self.prev_statement():
+            #             self.prev_section()
+            #         y+=diff
+            # else:
+            #     x += dx
+            #     while x >= diff:
+            #         self.next_word()
+            #         x -= diff
+            #     while x <= -diff:
+            #         self.prev_word()
+            #         x += diff
+            # self.last_pos = (x, y)
+
 
             # mod = pygame.key.get_mods()
             # if e.button == 5:

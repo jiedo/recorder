@@ -23,6 +23,9 @@ class Library():
         self.last_pos = (0, 0)
         self.last_vector = (0, 0)
         self.total_angle = 0
+        self.pos_to_mark = {}
+        self.runtime_row = 0
+        self.runtime_col = 0
 
 
     def load_library(self):
@@ -58,7 +61,7 @@ class Library():
         self.draw_rect(surface, color, rect, margin=6)
 
 
-    def draw_book(self, surface, book, is_current_shelf, is_current, pos=0):
+    def draw_book(self, surface, book, is_current_shelf, is_current, shelfidx, bookidx, pos=0):
         pagei = book["mark"]
         left = 0
         top  = pos
@@ -67,10 +70,17 @@ class Library():
         for idx, page in enumerate(book["pages"]):
             rect = pygame.Rect(left, top, width, height)
             self.draw_page(surface, page, is_current_shelf, is_current, idx==pagei, rect)
+            self.pos_to_mark[(self.runtime_row, self.runtime_col)] = (shelfidx, bookidx, idx)
+            self.runtime_col += 1
             left += width
-            if width > self.WIN_WIDTH - left:
+            if idx < len(book["pages"])-1 and width > self.WIN_WIDTH - left:
+                self.runtime_row += 1
+                self.runtime_col = 0
                 left = 0
                 top += height
+        self.runtime_row += 1
+        self.runtime_col = 0
+
         if is_current_shelf:
             if top - pos >= height:
                 color = (0, 200, 200)
@@ -87,11 +97,11 @@ class Library():
         return top+height - pos
 
 
-    def draw_shelf(self, surface, shelf, is_current, pos=0):
+    def draw_shelf(self, surface, shelf, is_current, shelfidx, pos=0):
         booki = shelf["mark"]
         top = pos
         for idx, book in enumerate(shelf["books"]):
-            height = self.draw_book(surface, book, is_current, idx==booki, top)
+            height = self.draw_book(surface, book, is_current, idx==booki, shelfidx, idx, top)
             top += height
         if is_current:
             color = (0, 200, 200)
@@ -107,9 +117,12 @@ class Library():
     def draw_library(self, surface, pos=0):
         if "mark" not in self.library:
             return
+        self.runtime_row = 0
+        self.runtime_col = 0
+        self.pos_to_mark = {}
         shelfi = self.library["mark"]
         for idx, shelf in enumerate(self.library["shelfs"]):
-            height = self.draw_shelf(surface, shelf, idx==shelfi, pos)
+            height = self.draw_shelf(surface, shelf, idx==shelfi, idx, pos)
             pos += height
         self.update_library_display(surface)
 
@@ -171,7 +184,6 @@ class Library():
             'max_statement_id': 0,
             'max_word_id': 0,
         }
-
         current_idx = current_book['mark']
         current_book['pages'][current_idx:current_idx] = [{
             "id": self.library['max_page_id'],
@@ -255,8 +267,8 @@ class Library():
             return False
         current_shelf['mark'] = current_idx-1
 
-        a, b = current_shelf['books'][current_idx], current_shelf['books'][current_idx-1]
-        current_shelf['books'][current_idx], current_shelf['books'][current_idx-1] = a, b
+        a, b = current_shelf['books'][current_idx-1], current_shelf['books'][current_idx]
+        current_shelf['books'][current_idx-1], current_shelf['books'][current_idx] = b, a
         return True
 
 
@@ -320,12 +332,11 @@ class Library():
         if length <= 0:
             return False
         current_idx = current_book['mark']
-        if current_idx < 1:
+        if current_idx >= length-1:
             return False
-        current_book['mark'] = current_idx-1
-
-        a, b = current_book['pages'][current_idx], current_book['pages'][current_idx-1]
-        current_book['pages'][current_idx], current_book['pages'][current_idx-1] = a, b
+        current_book['mark'] = current_idx+1
+        a, b = current_book['pages'][current_idx], current_book['pages'][current_idx+1]
+        current_book['pages'][current_idx], current_book['pages'][current_idx+1] = b, a
         return True
 
 
@@ -385,13 +396,13 @@ class Library():
         if event.type == KEYUP:
             if event.key == K_3:
                 self.new_shelf()
-                feedback += "create shelf. "
+                feedback += "new shelf. "
             elif event.key == K_2:
                 self.new_book()
-                feedback += "create book. "
+                feedback += "new book. "
             elif event.key == K_1:
                 self.new_page()
-                feedback += "create page. "
+                feedback += "new page. "
 
 
             if event.key == K_h:
@@ -441,7 +452,6 @@ class Library():
                             feedback += "none. "
                     else:
                         feedback += "previous book. "
-
             # Nav page
             if not b1 and not b3:
                 if event.button == 5:
@@ -472,8 +482,19 @@ class Library():
                 elif event.button == 4:
                     self.swap_book()
 
-
         elif event.type == MOUSEMOTION:
+            #Nav by point to
+            x, y = event.pos
+            col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK
+            (shelfi, booki, pagei) = self.pos_to_mark.get((row, col), (-1, -1, -1))
+            if shelfi >= 0:
+                self.library['mark'] = shelfi
+            if booki >= 0:
+                self.library['shelfs'][shelfi]['mark'] = booki
+            if pagei >= 0:
+                self.library['shelfs'][shelfi]['books'][booki]['mark'] = pagei
+
+            #Nav by draw circle and button
             # a, b = self.last_vector
             # c, d = event.rel
             # b1, b2, b3 = event.buttons
@@ -498,39 +519,43 @@ class Library():
             #         self.prev_page()
             #         self.total_angle += diff
 
-            b1, b2, b3 = event.buttons
-            diff = self.SIZEBLOCK
-            dx, dy = event.rel
-            x, y = self.last_pos
-            dt = 4
-            if dx > 0:
-                dx = dx*dx/dt
-            else:
-                dx = -dx*dx/dt
-            if dy > 0:
-                dy = dy*dy/dt
-            else:
-                dy = -dy*dy/dt
-            if b1:
-                y += dy
-                while y >= diff:
-                    if not self.next_book():
-                        self.next_shelf()
-                    y-=diff
-                while y <= -diff:
-                    if not self.prev_book():
-                        self.prev_shelf()
-                    y+=diff
-            else:
-                x += dx
-                while x >= diff:
-                    self.next_page()
-                    x -= diff
-                while x <= -diff:
-                    self.prev_page()
-                    x += diff
-            self.last_pos = (x, y)
 
+            #Nav by wheel and button
+            # b1, b2, b3 = event.buttons
+            # diff = self.SIZEBLOCK
+            # dx, dy = event.rel
+            # x, y = self.last_pos
+            # dt = 4
+            # if dx > 0:
+            #     dx = dx*dx/dt
+            # else:
+            #     dx = -dx*dx/dt
+            # if dy > 0:
+            #     dy = dy*dy/dt
+            # else:
+            #     dy = -dy*dy/dt
+            # if b1:
+            #     y += dy
+            #     while y >= diff:
+            #         if not self.next_book():
+            #             self.next_shelf()
+            #         y-=diff
+            #     while y <= -diff:
+            #         if not self.prev_book():
+            #             self.prev_shelf()
+            #         y+=diff
+            # else:
+            #     x += dx
+            #     while x >= diff:
+            #         self.next_page()
+            #         x -= diff
+            #     while x <= -diff:
+            #         self.prev_page()
+            #         x += diff
+            # self.last_pos = (x, y)
+
+
+            #Nav by wheel and key
             # mod = pygame.key.get_mods()
             # if e.button == 5:
             #     if mod & KMOD_CTRL:
