@@ -17,7 +17,7 @@ def activeListenToAllOptions(audio_object):
     RATE = 16000
     CHUNK = 1024
     LISTEN_TIME = 4
-    play('beep_hi.wav')
+    play('sounds/beep_hi.wav')
     # prepare recording stream
     stream = audio_object.open(format=pyaudio.paInt16,
                               channels=1,
@@ -31,7 +31,7 @@ def activeListenToAllOptions(audio_object):
         data = stream.read(CHUNK)
         frames.append(data)
 
-    play('beep_lo.wav')
+    play('sounds/beep_lo.wav')
     # save the audio data
     stream.stop_stream()
     stream.close()
@@ -90,7 +90,7 @@ class Recorder():
         self.stream = None
 
     def start(self):
-        play('beep_hi.wav')
+        play('sounds/beep_hi.wav')
         # prepare recording stream
         self.stream = self.audio_object.open(format=pyaudio.paInt16,
                    channels=1,
@@ -118,4 +118,4 @@ class Recorder():
             wav_fp.setframerate(self.RATE)
             wav_fp.writeframes(''.join(self.frames))
             wav_fp.close()
-        play('beep_lo.wav')
+        play("sounds/beep_lo.wav")
