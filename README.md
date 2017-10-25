@@ -36,13 +36,13 @@ Click to close page.
 
 speak the word text.
 
-* Page
-
-Follow to another page.
-
 * Time
 
 Report time now.
+
+* Page
+
+Follow to another page.
 
 * Link
 

@@ -1,16 +1,8 @@
 #!/usr/bin/env python2
 
-"""A simple starfield example. Note you can move the 'center' of
-the starfield by leftclicking in the window. This example show
-the basics of creating a window, simple pixel plotting, and input
-event management"""
-
-import os
-import wave
-import pyaudio
-import math, pygame
-from pygame.locals import *
+import pygame
 import time
+
 from library import Library
 from page import Page
 from sound import play, say, Recorder
@@ -23,6 +15,11 @@ SIZEBLOCK = 30
 
 MODE_LIBRARY = 1
 MODE_PAGE = 2
+
+SUBMODE_NONE = 0
+SUBMODE_PLAYSOUND = 1
+SUBMODE_RECORDSOUND = 2
+
 
 def main():
     clock = pygame.time.Clock()
@@ -37,30 +34,34 @@ def main():
     recorder = Recorder()
     library.load_library()
     mode = MODE_LIBRARY
-
+    submode = SUBMODE_NONE
+    display_need_reflash = True
     done = 0
     start_time = 0
     pure_left_button_up = False
     pure_right_button_up = False
     while not done:
-        screen.fill(black)
-        if mode == MODE_LIBRARY:
-            library.draw_library(screen)
-        else:
-            page.draw_page(screen)
-        pygame.display.update()
+        if display_need_reflash:
+            screen.fill(black)
+            if mode == MODE_LIBRARY:
+                library.draw_library(screen)
+            elif mode == MODE_PAGE:
+                page.draw_page(screen)
+            pygame.display.update()
+            display_need_reflash = False
 
         for e in pygame.event.get():
+            display_need_reflash = True
             if mode == MODE_LIBRARY:
                 feedback = library.on_event(e)
-            else:
+            elif mode == MODE_PAGE:
                 feedback = page.on_event(e)
             # if feedback:
             #     say(feedback)
 
-            ### keys
-            if (e.type == KEYUP and e.key == K_RETURN) or (e.type == MOUSEBUTTONDOWN and e.button == 2):
-            #Exit or Enter page mode
+            ### press RETURN
+            if e.type == pygame.KEYUP and e.key == pygame.K_RETURN:
+                #Exit or Enter page mode
                 if mode == MODE_LIBRARY:
                     results = library.get_current_page_id()
                     if not results:
@@ -71,24 +72,25 @@ def main():
                     page.load_page(page_id)
                     mode = MODE_PAGE
                     continue
-                else:
+                elif mode == MODE_PAGE:
                     mode = MODE_LIBRARY
                     page.store_page()
                     say("back to library")
 
-            #Exit page mode or Quit
-            if e.type == QUIT or (e.type == KEYUP and e.key == K_ESCAPE):
+            ### press ESC
+            if e.type == pygame.QUIT or (e.type == pygame.KEYUP and e.key == pygame.K_ESCAPE):
+                #Exit page mode or Quit
                 if mode == MODE_LIBRARY:
                     library.store_library()
                     done = 1
                     break
-                else:
+                elif mode == MODE_PAGE:
                     mode = MODE_LIBRARY
                     page.store_page()
                     say("back to library")
 
             ### mouse
-            if e.type == MOUSEBUTTONDOWN:
+            if e.type == pygame.MOUSEBUTTONDOWN:
                 button1, button2, button3 = pygame.mouse.get_pressed()
                 # check one click
                 if button1:
@@ -100,27 +102,34 @@ def main():
                 if button1 or button2 or e.button != 3:
                     pure_right_button_up = False
 
-                # Start record
+                # press button1 + button3 at the sametime, beside, without any other button pressed
                 if button3 and button1 and (e.button == 1 or e.button == 3):
+                    # enter record mode
+                    submode = SUBMODE_RECORDSOUND
                     start_time = time.time()
                     recorder.start()
 
-            elif e.type == MOUSEBUTTONUP:
+            elif e.type == pygame.MOUSEBUTTONUP:
                 button1, button2, button3 = pygame.mouse.get_pressed()
-                # cancel recording
+
+                # use wheel
                 if e.button == 4 or e.button == 5:
-                    recorder.cancel()
+                    # cancel recording
+                    if submode == SUBMODE_RECORDSOUND:
+                        submode = SUBMODE_NONE
                     continue
+
                 if mode == MODE_LIBRARY:
                     filename, create_time = library.get_current_page_sound_filename()
-                else:
+                elif mode == MODE_PAGE:
                     filename, create_time = page.get_current_word_sound_filename()
 
-                # only left click, then enter
+                # only left click
                 if e.button == 1 and pure_left_button_up:
                     pure_left_button_up = False
 
                     if mode == MODE_LIBRARY:
+                        # enter page mode
                         results = library.get_current_page_id()
                         if not results:
                             continue
@@ -129,7 +138,7 @@ def main():
                         page.load_page(page_id)
                         mode = MODE_PAGE
                         continue
-                    else:
+                    elif mode == MODE_PAGE:
                         word = page.get_current_word()
                         if word['type'] == 'Close':
                             mode = MODE_LIBRARY
@@ -140,36 +149,38 @@ def main():
                         elif word['type'] == 'Time':
                             say(time.ctime())
 
-                # only right click, then play
+                # only right click
                 if e.button == 3 and pure_right_button_up:
                     pure_right_button_up = False
+
+                    # enter playsound mode
                     if create_time > 0:
-                        play(filename)
+                        submode = SUBMODE_PLAYSOUND
+                        #play(filename)
                     else:
                         say("no sound")
-                # save the audio data
-                if not button3 and not button1:
-                    if not recorder.isrecording():
+
+                # release button1 + button3
+                if (e.button == 1 or e.button == 3) and (not button1 and not button3):
+                    # save the audio data
+                    if submode != SUBMODE_RECORDSOUND:
                         continue
+                    submode = SUBMODE_NONE
                     if not filename:
-                        recorder.cancel()
                         continue
                     end_time = time.time()
                     if int(end_time - start_time) < 1:
-                        recorder.cancel()
                         continue
                     if mode == MODE_LIBRARY:
                         library.set_current_page(int(start_time*1000), int(end_time*1000))
-                    else:
+                    elif mode == MODE_PAGE:
                         page.set_current_word(int(start_time*1000), int(end_time*1000))
                     recorder.flush(filename)
 
-        recorder.breath()
+        if submode == SUBMODE_RECORDSOUND:
+            recorder.breath()
         clock.tick(50)
     recorder.terminate()
-
-
-
 
 
 # if python says run, then we should run

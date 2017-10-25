@@ -1,20 +1,8 @@
 #!/usr/bin/env python2
 
-"""A simple starfield example. Note you can move the 'center' of
-the starfield by leftclicking in the window. This example show
-the basics of creating a window, simple pixel plotting, and input
-event management"""
-
-import os
-import wave
-import pyaudio
-import tempfile
-import subprocess
-import random, math, pygame
-from pygame.locals import *
+import pygame
 import time
 import json
-
 
 class Page():
     def __init__(self, width, blocksize):
@@ -381,28 +369,28 @@ class Page():
 
     def on_event(self, event):
         feedback = ""
-        if event.type == KEYUP:
-            if event.key == K_3:
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_3:
                 self.new_section()
                 feedback += "new section. "
-            elif event.key == K_2:
+            elif event.key == pygame.K_2:
                 self.new_statement()
                 feedback += "new statements. "
-            elif event.key == K_1:
+            elif event.key == pygame.K_1:
                 self.new_word()
                 feedback += "new word. "
 
-            if event.key == K_h:
+            if event.key == pygame.K_h:
                 if self.prev_word():
                     feedback += "previous word. "
                 else:
                     feedback += "none. "
-            elif event.key == K_l:
+            elif event.key == pygame.K_l:
                 if self.next_word():
                     feedback += "next word. "
                 else:
                     feedback += "none. "
-            if event.key == K_k:
+            if event.key == pygame.K_k:
                 if not self.prev_statement():
                     if self.prev_section():
                         feedback += "previous section. "
@@ -410,7 +398,7 @@ class Page():
                         feedback += "none. "
                 else:
                     feedback += "previous statements. "
-            elif event.key == K_j:
+            elif event.key == pygame.K_j:
                 if not self.next_statement():
                     if self.next_section():
                         feedback += "next section. "
@@ -419,7 +407,7 @@ class Page():
                 else:
                     feedback += "next statements. "
 
-        elif event.type == MOUSEBUTTONDOWN:
+        elif event.type == pygame.MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
             # Nav statement
             if b1 and not b3:
@@ -470,7 +458,7 @@ class Page():
                 elif event.button == 4:
                     self.swap_statement()
 
-        elif event.type == MOUSEMOTION:
+        elif event.type == pygame.MOUSEMOTION:
             #Nav by point to
             x, y = event.pos
             col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK

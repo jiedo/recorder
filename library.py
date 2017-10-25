@@ -1,17 +1,6 @@
 #!/usr/bin/env python2
 
-"""A simple starfield example. Note you can move the 'center' of
-the starfield by leftclicking in the window. This example show
-the basics of creating a window, simple pixel plotting, and input
-event management"""
-
-import os
-import wave
-import pyaudio
-import tempfile
-import subprocess
-import random, math, pygame
-from pygame.locals import *
+import pygame
 import time
 import json
 
@@ -421,29 +410,29 @@ class Library():
 
     def on_event(self, event):
         feedback = ""
-        if event.type == KEYUP:
-            if event.key == K_3:
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_3:
                 self.new_shelf()
                 feedback += "new shelf. "
-            elif event.key == K_2:
+            elif event.key == pygame.K_2:
                 self.new_book()
                 feedback += "new book. "
-            elif event.key == K_1:
+            elif event.key == pygame.K_1:
                 self.new_page()
                 feedback += "new page. "
 
 
-            if event.key == K_h:
+            if event.key == pygame.K_h:
                 if self.prev_page():
                     feedback += "previous page. "
                 else:
                     feedback += "none. "
-            elif event.key == K_l:
+            elif event.key == pygame.K_l:
                 if self.next_page():
                     feedback += "next page. "
                 else:
                     feedback += "none. "
-            if event.key == K_k:
+            if event.key == pygame.K_k:
                 if not self.prev_book():
                     if self.prev_shelf():
                         feedback += "previous shelf. "
@@ -451,7 +440,7 @@ class Library():
                         feedback += "none. "
                 else:
                     feedback += "previous book. "
-            elif event.key == K_j:
+            elif event.key == pygame.K_j:
                 if not self.next_book():
                     if self.next_shelf():
                         feedback += "previous shelf. "
@@ -460,7 +449,7 @@ class Library():
                 else:
                     feedback += "previous book. "
 
-        elif event.type == MOUSEBUTTONDOWN:
+        elif event.type == pygame.MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
             # Nav book
             if b1 and not b3:
@@ -510,7 +499,7 @@ class Library():
                 elif event.button == 4:
                     self.swap_book()
 
-        elif event.type == MOUSEMOTION:
+        elif event.type == pygame.MOUSEMOTION:
             #Nav by point to
             x, y = event.pos
             col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK
