@@ -16,6 +16,19 @@ class Library():
         self.runtime_row = 0
         self.runtime_col = 0
 
+        self.color_page_very_current = (0, 200, 200)
+        self.color_page_current = (180, 180, 180)
+        self.color_page_not_current = (40, 40, 40)
+
+        self.color_book_tip = (0, 200, 200)
+        self.color_shelf_tip = (0, 200, 200)
+
+        self.color_book_very_current = (110, 110, 110)
+        self.color_book_current = (10, 10, 10)
+        self.color_book_not_current = (1, 1, 1)
+
+        self.color_shelf = (0, 0, 0)
+
 
     def load_library(self):
         try:
@@ -43,13 +56,13 @@ class Library():
 
 
     def draw_page(self, surface, page, is_current_shelf, is_current_book, is_current, rect):
-        color = (40, 40, 40)
+        color = self.color_page_not_current
         if is_current:
             if is_current_shelf:
                 if is_current_book:
-                    color = (0, 200, 200)
+                    color = self.color_page_very_current
                 else:
-                    color = (180, 180, 180)
+                    color = self.color_page_current
         self.draw_rect(surface, color, rect, margin=6)
 
 
@@ -75,15 +88,15 @@ class Library():
 
         if is_current_shelf:
             if top - pos >= height:
-                color = (0, 200, 200)
+                color = self.color_book_tip
                 book_rect_tip = pygame.Rect(self.WIN_WIDTH-4, pos, 4, top+height - pos)
                 self.draw_rect(surface, color, book_rect_tip, margin=4)
         if is_current_shelf:
-            color = (10, 10, 10)
+            color = self.color_book_current
             if is_current:
-                color = (110, 110, 110)
+                color = self.color_book_very_current
         else:
-            color = (1, 1, 1)
+            color = self.color_book_not_current
         book_rect = pygame.Rect(0, pos, self.WIN_WIDTH, top+height - pos)
         self.draw_rect(surface, color, book_rect, margin=4)
         return top+height - pos
@@ -96,10 +109,10 @@ class Library():
             height = self.draw_book(surface, book, is_current, idx==booki, shelfidx, idx, top)
             top += height
         if is_current:
-            color = (0, 200, 200)
+            color = self.color_shelf_tip
             shelf_rect_tip = pygame.Rect(0, pos, 2, top - pos)
             self.draw_rect(surface, color, shelf_rect_tip, margin=2)
-        color = (0, 0, 0)
+        color = self.color_shelf
         shelf_rect = pygame.Rect(0, pos, self.WIN_WIDTH, top - pos)
         self.draw_rect(surface, color, shelf_rect, margin=2)
 

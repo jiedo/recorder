@@ -21,6 +21,18 @@ class Page():
         self.runtime_row = 0
         self.runtime_col = 0
 
+        self.color_word_very_current = (0, 200, 0)
+        self.color_word_current = (180, 180, 180)
+        self.color_word_not_current = (40, 40, 40)
+
+        self.color_statement_tip = (200, 200, 200)
+        self.color_section_tip = (200, 200, 200)
+
+        self.color_statement_very_current = (110, 110, 110)
+        self.color_statement_current = (180, 180, 180)
+        self.color_statement_not_current = (1, 1, 1)
+
+        self.color_section = (0, 0, 0)
 
     def store_page(self):
         page_string = json.dumps(self.page, indent=2)
@@ -41,13 +53,13 @@ class Page():
 
 
     def draw_word(self, surface, word, is_current_section, is_current_statement, is_current, rect):
-        color = (40, 40, 40)
+        color = self.color_word_not_current
         if is_current:
             if is_current_section:
                 if is_current_statement:
-                    color = (0, 200, 0)
+                    color = self.color_word_very_current
                 else:
-                    color = (180, 180, 180)
+                    color = self.color_word_current
         self.draw_rect(surface, color, rect, margin=6)
 
 
@@ -73,15 +85,15 @@ class Page():
 
         if is_current_section:
             if top - pos >= height:
-                color = (200, 200, 200)
+                color = self.color_statement_tip
                 statement_rect_tip = pygame.Rect(self.WIN_WIDTH-4, pos, 4, top+height - pos)
                 self.draw_rect(surface, color, statement_rect_tip, margin=4)
         if is_current_section:
-            color = (10, 10, 10)
+            color = self.color_statement_current
             if is_current:
-                color = (110, 110, 110)
+                color = self.color_statement_very_current
         else:
-            color = (1, 1, 1)
+            color = self.color_statement_not_current
         statement_rect = pygame.Rect(0, pos, self.WIN_WIDTH, top+height - pos)
         self.draw_rect(surface, color, statement_rect, margin=4)
         return top+height - pos
@@ -94,10 +106,10 @@ class Page():
             height = self.draw_statement(surface, statement, is_current, idx==statementi, sectionidx, idx, top)
             top += height
         if is_current:
-            color = (200, 200, 200)
+            color = self.color_section_tip
             section_rect_tip = pygame.Rect(0, pos, 2, top - pos)
             self.draw_rect(surface, color, section_rect_tip, margin=2)
-        color = (0, 0, 0)
+        color = self.color_section
         section_rect = pygame.Rect(0, pos, self.WIN_WIDTH, top - pos)
         self.draw_rect(surface, color, section_rect, margin=2)
 
