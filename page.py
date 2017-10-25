@@ -28,8 +28,8 @@ class Page():
         self.color_statement_tip = (200, 200, 200)
         self.color_section_tip = (200, 200, 200)
 
-        self.color_statement_very_current = (110, 110, 110)
-        self.color_statement_current = (180, 180, 180)
+        self.color_statement_very_current = (180, 180, 180)
+        self.color_statement_current = (110, 110, 110)
         self.color_statement_not_current = (1, 1, 1)
 
         self.color_section = (0, 0, 0)

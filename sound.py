@@ -119,3 +119,177 @@ class Recorder():
             wav_fp.writeframes(''.join(self.frames))
             wav_fp.close()
         play("sounds/beep_lo.wav")
+
+
+class Player():
+    def __init__(self, width, height, blocksize):
+        self.width, self.height, self.blocksize = width, height, blocksize
+        self.filename = None
+        self.color_board = (80, 100, 100)
+        self.color_time_bar = (150, 150, 150)
+        self.color_time_point = (20, 80, 80)
+        self.color_player_button = (150, 150, 150)
+        self.color_speed_bar = (150, 150, 150)
+        self.color_speed_point = (20, 80, 80)
+        self.color_volume_bar = (150, 150, 150)
+        self.color_volume_point = (20, 80, 80)
+
+        self.speed = 50
+        self.volume = 50
+        self.point = 50
+
+        self.latest_speed = 50
+        self.latest_volume = 50
+        self.latest_point = 50
+
+        self.last_action = ""
+        self.soundObj = None
+        self.is_stated = False
+        self.is_paused = False
+
+    def load(self, filename):
+        self.filename = filename
+        pygame.mixer.music.load(filename)
+        self.point = 0
+        self.latest_point = 0
+        self.is_stated = False
+        self.is_paused = False
+        self.soundObj = pygame.mixer.Sound(filename)
+
+
+    def on_action(self, action, pos, event):
+        k = 0.618
+
+        if action == "enter":
+            say("play or pause")
+        elif action == "right":
+            pygame.mixer.music.rewind()
+            self.is_stated = False
+        elif action == "left":
+            if not self.is_stated:
+                pygame.mixer.music.play()
+                self.is_stated = True
+                self.is_paused = False
+            else:
+                if self.is_paused == False:
+                    pygame.mixer.music.pause()
+                    self.is_paused = True
+                else:
+                    pygame.mixer.music.unpause()
+                    self.is_paused = False
+
+        elif action == "left-drag":
+            x, _ = pos
+            dx = 100*x/(self.width * (1 - (1-k) * (1-k))*k)
+            if self.last_action != action:
+                self.latest_point = self.point
+            self.point = self.latest_point + int(dx)
+            if self.point < 0:
+                self.point = 0
+            elif self.point > 100:
+                self.point = 100
+            # pygame.mixer.music.set_pos(self.point*100)
+
+        elif action == "right-drag":
+            _, y = pos
+            dy = 100*y/(self.height * (1-k) * (1-k) * (1-k))
+            if self.last_action != action:
+                self.latest_speed = self.speed
+            self.speed = self.latest_speed + int(dy)
+            if self.speed < 0:
+                self.speed = 0
+            elif self.speed > 100:
+                self.speed = 100
+
+        elif action == "wheel-up" or action == "wheel-down":
+            if action == "wheel-up":
+                dy = 10
+            elif action == "wheel-down":
+                dy = -10
+            self.volume += int(dy)
+            if self.volume < 0:
+                self.volume = 0
+            elif self.volume > 100:
+                self.volume = 100
+            pygame.mixer.music.set_volume(self.volume/100.0)
+
+        elif action == "both":
+            say("press both ")
+        elif action == "!both":
+            say("release both ")
+
+        self.last_action = action
+
+
+    def draw_player(self, surface):
+        self.point = int(pygame.mixer.music.get_pos()/100)
+        if self.point > 100:
+            self.point = 100
+        # volume = pygame.mixer.music.get_volume()
+        # self.volume = volume
+
+        k = 0.618
+        # board
+        color = self.color_board
+        top = self.height * (1-k) * k
+        left = self.width * (1-k) * (1-k) / 2
+        height = self.height * (1-k) * (1-k)
+        width = self.width * (1 - (1-k) * (1-k))
+        rect = pygame.Rect(left, top, width, height)
+        pygame.draw.rect(surface, color, rect, 0)
+
+        # time bar
+        color = self.color_time_bar
+        time_top = top + height * k
+        time_left = left + width * (1-k) / 2
+        time_height = height * (1-k) * (1-k) * (1-k) * (1-k)
+        time_width = width * k
+        time_rect = pygame.Rect(time_left, time_top, time_width, time_height)
+        pygame.draw.rect(surface, color, time_rect, 0)
+
+        # time bar point
+        color = self.color_player_button
+        time_bar_point_d = time_height * 2
+        time_bar_point_top = time_top + time_height/2
+        time_bar_point_left = time_left + time_width * self.point/100
+        pygame.draw.circle(surface, color, (int(time_bar_point_left), int(time_bar_point_top)), int(time_bar_point_d), 0)
+
+
+        # speed bar
+        color = self.color_speed_bar
+        speed_height = height * (1-k)
+        speed_top = top + (height - speed_height)/2
+        speed_left = left + (time_left - left) * k
+        speed_width = time_height
+        speed_rect = pygame.Rect(speed_left, speed_top, speed_width, speed_height)
+        pygame.draw.rect(surface, color, speed_rect, 0)
+
+        # speed bar point
+        color = self.color_player_button
+        speed_bar_point_d = speed_width * 2
+        speed_bar_point_top = speed_top + speed_height * self.speed/100
+        speed_bar_point_left = speed_left + speed_width/2
+        pygame.draw.circle(surface, color, (int(speed_bar_point_left), int(speed_bar_point_top)), int(speed_bar_point_d), 0)
+
+        # volume bar
+        color = self.color_volume_bar
+        volume_height = height * (1-k)
+        volume_top = top + (height - volume_height)/2
+        volume_width = time_height
+        volume_left = left + (width - (time_left - left) * k) - volume_width
+        volume_rect = pygame.Rect(volume_left, volume_top, volume_width, volume_height)
+        pygame.draw.rect(surface, color, volume_rect, 0)
+
+        # volume bar point
+        color = self.color_player_button
+        volume_bar_point_d = volume_width * 2
+        volume_bar_point_top = volume_top + volume_height - volume_height * self.volume/100
+        volume_bar_point_left = volume_left + volume_width/2
+        pygame.draw.circle(surface, color, (int(volume_bar_point_left), int(volume_bar_point_top)), int(volume_bar_point_d), 0)
+
+        # player button
+        color = self.color_player_button
+        player_d = height * (1-k) * (1-k)
+        player_top = top + height * (1-k)
+        player_left = left + width/2
+        pygame.draw.circle(surface, color, (int(player_left), int(player_top)), int(player_d), 0)
