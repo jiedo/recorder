@@ -7,56 +7,12 @@ import tempfile
 import subprocess
 import pygame
 import time
-
-
-def activeListenToAllOptions(audio_object):
-    """
-        Records until a second of silence or times out after 12 seconds
-        Returns a list of the matching options or None
-    """
-    RATE = 16000
-    CHUNK = 1024
-    LISTEN_TIME = 4
-    play('sounds/beep_hi.wav')
-    # prepare recording stream
-    stream = audio_object.open(format=pyaudio.paInt16,
-                              channels=1,
-                              rate=RATE,
-                              input=True,
-                              frames_per_buffer=CHUNK)
-    frames = []
-    # increasing the range # results in longer pause after command
-    # generation
-    for i in range(0, RATE / CHUNK * LISTEN_TIME):
-        data = stream.read(CHUNK)
-        frames.append(data)
-
-    play('sounds/beep_lo.wav')
-    # save the audio data
-    stream.stop_stream()
-    stream.close()
-
-    filename = "rec/%d.%d" % (int(time.time()), 4)
-    with open(filename, "w+b") as f:
-        wav_fp = wave.open(f, 'wb')
-        wav_fp.setnchannels(1)
-        wav_fp.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
-        wav_fp.setframerate(RATE)
-        wav_fp.writeframes(''.join(frames))
-        wav_fp.close()
+import alsaaudio
 
 
 def play(filename):
-    # FIXME: Use platform-independent audio-output here
-    # See issue jasperproject/jasper-client#188
     soundObj = pygame.mixer.Sound(filename)
     soundObj.play()
-    return
-    cmd = ['aplay', '-D', 'default', str(filename)]
-    with tempfile.TemporaryFile() as f:
-        subprocess.call(cmd, stdout=f, stderr=f)
-        f.seek(0)
-        output = f.read()
 
 
 def say(phrase):
@@ -83,7 +39,6 @@ def say(phrase):
 class Recorder():
     RATE = 22000
     CHUNK = 1024
-
     def __init__(self):
         self.audio_object = pyaudio.PyAudio()
         self.frames = []
@@ -91,19 +46,16 @@ class Recorder():
 
     def start(self):
         play('sounds/beep_hi.wav')
-        # prepare recording stream
-        self.stream = self.audio_object.open(format=pyaudio.paInt16,
-                   channels=1,
-                   rate=self.RATE,
-                   input=True,
-                   frames_per_buffer=self.CHUNK)
         self.frames = []
+        self.stream = self.audio_object.open(format=pyaudio.paInt16,
+                                             channels=1,
+                                             rate=self.RATE,
+                                             input=True,
+                                             stream_callback=self.record_callback)
 
-    def breath(self):
-        # 0.1 second delay
-        for i in range(0, self.RATE / self.CHUNK /10):
-            data = self.stream.read(self.CHUNK)
-            self.frames.append(data)
+    def record_callback(self, in_data, frame_count, time_info, status):
+        self.frames.append(in_data)
+        return (in_data, pyaudio.paContinue)
 
     def terminate(self):
         self.audio_object.terminate()
@@ -134,27 +86,48 @@ class Player():
         self.color_volume_bar = (150, 150, 150)
         self.color_volume_point = (20, 80, 80)
 
-        self.speed = 50
+        self.speed = 30
         self.volume = 50
-        self.point = 50
-
-        self.latest_speed = 50
+        self.point = 0
+        self.latest_speed = 30
         self.latest_volume = 50
-        self.latest_point = 50
+        self.latest_point = 0
 
         self.last_action = ""
-        self.soundObj = None
-        self.is_stated = False
-        self.is_paused = False
+        self.audio_object = pyaudio.PyAudio()
+        self.mixer = alsaaudio.Mixer()
+
+        self.volume = self.mixer.getvolume()[0]
+
+
+    def play_callback(self, in_data, frame_count, time_info, status):
+        data = self.wf.readframes(frame_count)
+        self.point = 100 * self.wf.tell() / self.nframes
+        return (data, pyaudio.paContinue)
+
 
     def load(self, filename):
         self.filename = filename
-        pygame.mixer.music.load(filename)
+        self.wf = wave.open(self.filename, 'rb')
+        self.nframes = self.wf.getnframes()
+        self.nchannels = self.wf.getnchannels()
+        self.nsampwidth = self.wf.getsampwidth()
+        self.nframerate = self.wf.getframerate()
         self.point = 0
         self.latest_point = 0
-        self.is_stated = False
-        self.is_paused = False
-        self.soundObj = pygame.mixer.Sound(filename)
+        self.stream = None
+        self.init_stream()
+
+
+    def init_stream(self):
+        if self.stream:
+            self.stream.stop_stream()
+            self.stream.close()
+        self.stream = self.audio_object.open(format=self.audio_object.get_format_from_width(self.nsampwidth),
+                                  channels=self.nchannels,
+                                  rate=int(self.nframerate * (0.7 + self.speed / 100.0)),
+                                  output=True,
+                                  stream_callback=self.play_callback)
 
 
     def on_action(self, action, pos, event):
@@ -162,22 +135,21 @@ class Player():
 
         if action == "enter":
             say("play or pause")
-        # elif action == "right":
+        elif action == "right":
+            self.stream.close()
+            self.wf.close()
         elif action == "left":
-            if not self.is_stated:
-                pygame.mixer.music.play()
-                self.is_stated = True
-                self.is_paused = False
+            if self.stream.is_active():
+                self.stream.stop_stream()
+            elif not self.stream.is_stopped():
+                self.stream.stop_stream()
+                self.wf.rewind()
+                self.point = 0
             else:
-                if self.is_paused == False:
-                    pygame.mixer.music.pause()
-                    self.is_paused = True
-                else:
-                    pygame.mixer.music.unpause()
-                    self.is_paused = False
+                self.stream.start_stream()
 
         elif action == "left-drag":
-            x, _ = pos
+            x, y = pos
             dx = 100*x/(self.width * (1 - (1-k) * (1-k))*k)
             if self.last_action != action:
                 self.latest_point = self.point
@@ -186,48 +158,49 @@ class Player():
                 self.point = 0
             elif self.point > 100:
                 self.point = 100
-            # pygame.mixer.music.set_pos(self.point*100)
+            self.wf.setpos(int(self.point * self.nframes / 100))
 
-        elif action == "right-drag":
-            _, y = pos
             dy = 100*y/(self.height * (1-k) * (1-k) * (1-k))
             if self.last_action != action:
-                self.latest_speed = self.speed
-            self.speed = self.latest_speed + int(dy)
-            if self.speed < 0:
-                self.speed = 0
-            elif self.speed > 100:
-                self.speed = 100
+                self.latest_volume = self.volume
+            self.volume = self.latest_volume - int(dy)
+            if self.volume < 0:
+                self.volume = 0
+            elif self.volume > 100:
+                self.volume = 100
+            self.mixer.setvolume(self.volume)
+
+        elif action == "right-drag":
+            pass
 
         elif action == "wheel-up" or action == "wheel-down":
             if action == "wheel-up":
                 dy = 10
             elif action == "wheel-down":
                 dy = -10
-            self.volume += int(dy)
-            if self.volume < 0:
-                self.volume = 0
-            elif self.volume > 100:
-                self.volume = 100
-            pygame.mixer.music.set_volume(self.volume/100.0)
+            self.speed += int(dy)
+            if self.speed < 0:
+                self.speed = 0
+            elif self.speed > 100:
+                self.speed = 100
+
+            self.init_stream()
 
         elif action == "both":
             say("press both ")
         elif action == "!both":
-            pygame.mixer.music.rewind()
-            self.is_stated = False
-
+            if self.stream.is_active():
+                self.stream.stop_stream()
+            elif not self.stream.is_stopped():
+                self.stream.stop_stream()
+            self.wf.rewind()
+            self.point = 0
         self.last_action = action
 
 
     def draw_player(self, surface):
-        self.point = int(pygame.mixer.music.get_pos()/100)
-        if self.point > 100:
-            self.point = 100
-        # volume = pygame.mixer.music.get_volume()
-        # self.volume = volume
-
         k = 0.618
+
         # board
         color = self.color_board
         top = self.height * (1-k) * k
@@ -253,7 +226,6 @@ class Player():
         time_bar_point_left = time_left + time_width * self.point/100
         pygame.draw.circle(surface, color, (int(time_bar_point_left), int(time_bar_point_top)), int(time_bar_point_d), 0)
 
-
         # speed bar
         color = self.color_speed_bar
         speed_height = height * (1-k)
@@ -266,7 +238,7 @@ class Player():
         # speed bar point
         color = self.color_player_button
         speed_bar_point_d = speed_width * 2
-        speed_bar_point_top = speed_top + speed_height * self.speed/100
+        speed_bar_point_top = speed_top + speed_height - speed_height * self.speed/100
         speed_bar_point_left = speed_left + speed_width/2
         pygame.draw.circle(surface, color, (int(speed_bar_point_left), int(speed_bar_point_top)), int(speed_bar_point_d), 0)
 

@@ -62,9 +62,9 @@ def main():
 
         if display_need_reflash:
             screen.fill(black)
-            if mode == MODE_LIBRARY or last_mode == MODE_LIBRARY:
+            if mode == MODE_LIBRARY or (mode != MODE_PAGE and last_mode == MODE_LIBRARY):
                 library.draw_library(screen)
-            elif mode == MODE_PAGE or last_mode == MODE_PAGE:
+            elif mode == MODE_PAGE or (mode != MODE_LIBRARY and last_mode == MODE_PAGE):
                 page.draw_page(screen)
 
             if mode == SUBMODE_PLAYSOUND:
@@ -74,8 +74,8 @@ def main():
             display_need_reflash = False
 
         for event in pygame.event.get():
-            action, pos = event_checker.do(event)
             display_need_reflash = True
+            action, pos = event_checker.do(event)
             if mode == MODE_LIBRARY:
                 feedback = library.on_event(event)
                 if action == "quit":
@@ -176,8 +176,6 @@ def main():
                     page.set_current_word(int(start_time*1000), int(end_time*1000))
                 recorder.flush(filename)
 
-        if mode == SUBMODE_RECORDSOUND:
-            recorder.breath()
         clock.tick(50)
     recorder.terminate()
 
