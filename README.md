@@ -25,6 +25,14 @@ Mouse Button1 + Button3 + Wheel back: swap with next page/word
 
 Mouse Button1 + Button3 Hold: record sound to a page/word
 
+## Player
+
+Mouse Left drag: set pos and sound volume
+Mouse left click: stop/start play
+Mouse right click: quit play
+Mouse Wheel: set speed
+Key Escape: quit play
+
 
 # Word Types
 
