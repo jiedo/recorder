@@ -162,9 +162,7 @@ class Player():
 
         if action == "enter":
             say("play or pause")
-        elif action == "right":
-            pygame.mixer.music.rewind()
-            self.is_stated = False
+        # elif action == "right":
         elif action == "left":
             if not self.is_stated:
                 pygame.mixer.music.play()
@@ -216,7 +214,8 @@ class Player():
         elif action == "both":
             say("press both ")
         elif action == "!both":
-            say("release both ")
+            pygame.mixer.music.rewind()
+            self.is_stated = False
 
         self.last_action = action
 

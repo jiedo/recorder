@@ -2,6 +2,7 @@
 
 import pygame
 import time
+import sys
 
 from library import Library
 from page import Page
@@ -11,8 +12,17 @@ from event import EventChecker
 #constants
 WIN_HEIGHT = 3840
 WIN_WIDTH = 2160
-WINSIZE = [WIN_WIDTH, WIN_HEIGHT]
 SIZEBLOCK = 30
+
+WIN_HEIGHT = 800
+WIN_WIDTH = 1280
+SIZEBLOCK = 20
+if len(sys.argv) > 3:
+    WIN_HEIGHT = int(sys.argv[1])
+    WIN_WIDTH = int(sys.argv[2])
+    SIZEBLOCK = int(sys.argv[3])
+
+WINSIZE = [WIN_WIDTH, WIN_HEIGHT]
 
 MODE_LIBRARY = 1
 MODE_PAGE = 2
@@ -43,12 +53,12 @@ def main():
 
     event_checker = EventChecker()
 
-
     last_flash_display_time = time.time()
     while not done:
-        if (time.time() - last_flash_display_time) * 100 > 10:
-            display_need_reflash = True
-            last_flash_display_time = time.time()
+        if mode == SUBMODE_PLAYSOUND:
+            if (time.time() - last_flash_display_time) * 100 > 10:
+                display_need_reflash = True
+                last_flash_display_time = time.time()
 
         if display_need_reflash:
             screen.fill(black)
@@ -112,12 +122,13 @@ def main():
                         say(time.ctime())
             elif mode == SUBMODE_PLAYSOUND:
                 feedback = player.on_action(action, pos, event)
-                if action == "quit":
+                if action == "quit" or action == "right":
                     mode = last_mode
                     say("quit play")
+                    continue
 
-            # if feedback:
-            #     say(feedback)
+            if feedback:
+                say(feedback)
 
             #################
             if action == "right":
