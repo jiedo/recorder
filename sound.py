@@ -38,7 +38,7 @@ def say(phrase):
 
 
 class Recorder():
-    RATE = 22000
+    RATE = 22050
     CHUNK = 1024
     def __init__(self):
         self.audio_object = pyaudio.PyAudio()
@@ -77,7 +77,6 @@ class Recorder():
 class Player():
     def __init__(self, width, height, blocksize):
         self.width, self.height, self.blocksize = width, height, blocksize
-        self.filename = None
         self.color_board = (80, 100, 100)
         self.color_time_bar = (150, 150, 150)
         self.color_time_point = (20, 80, 80)
@@ -87,36 +86,46 @@ class Player():
         self.color_volume_bar = (150, 150, 150)
         self.color_volume_point = (20, 80, 80)
 
-        self.speed = 30
-        self.volume = 50
-        self.point = 0
-        self.latest_speed = 30
-        self.latest_volume = 50
-        self.latest_point = 0
-
         self.last_action = event_checker.EVENT_NONE
         self.audio_object = pyaudio.PyAudio()
         self.mixer = alsaaudio.Mixer()
-
+        self.stream = None
+        self.wf = None
         self.volume = self.mixer.getvolume()[0]
+        self.speed = 30
+        self.point = 0
+        self.latest_volume = 0
+        self.latest_speed = 0
+        self.latest_point = 0
 
 
     def play_callback(self, in_data, frame_count, time_info, status):
+        if not self.wf:
+            play("sounds/beep_lo.wav")
+            return ("", pyaudio.paAbort)
+
         data = self.wf.readframes(frame_count)
         self.point = 100 * self.wf.tell() / self.nframes
+        if len(data) == 0:
+            play("sounds/beep_lo.wav")
         return (data, pyaudio.paContinue)
 
 
     def load(self, filename):
-        self.filename = filename
-        self.wf = wave.open(self.filename, 'rb')
+        if self.stream:
+            self.stream.stop_stream()
+            self.stream.close()
+            self.stream = None
+        if self.wf:
+            self.wf.close()
+
+        self.wf = wave.open(filename, 'rb')
         self.nframes = self.wf.getnframes()
         self.nchannels = self.wf.getnchannels()
         self.nsampwidth = self.wf.getsampwidth()
         self.nframerate = self.wf.getframerate()
         self.point = 0
         self.latest_point = 0
-        self.stream = None
         self.init_stream()
 
 
@@ -124,6 +133,7 @@ class Player():
         if self.stream:
             self.stream.stop_stream()
             self.stream.close()
+            self.stream = None
         self.stream = self.audio_object.open(format=self.audio_object.get_format_from_width(self.nsampwidth),
                                   channels=self.nchannels,
                                   rate=int(self.nframerate * (0.7 + self.speed / 100.0)),
@@ -137,8 +147,11 @@ class Player():
         if action == event_checker.EVENT_ENTER:
             say("play or pause")
         elif action == event_checker.EVENT_RIGHT:
+            self.stream.stop_stream()
             self.stream.close()
             self.wf.close()
+            self.stream = None
+            self.wf = None
         elif action == event_checker.EVENT_LEFT:
             if self.stream.is_active():
                 self.stream.stop_stream()

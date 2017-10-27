@@ -77,8 +77,9 @@ def main():
         for event in pygame.event.get():
             display_need_reflash = True
             action, pos = event_checker_obj.do(event)
+            filename = ""
             if mode == MODE_LIBRARY:
-                feedback = library.on_event(event)
+                feedback, filename = library.on_event(event)
                 if action == event_checker.EVENT_QUIT:
                     library.store_library()
                     done = 1
@@ -101,8 +102,9 @@ def main():
                     say("load page %d" % page_id)
                     page.load_page(page_id)
                     mode = MODE_PAGE
+
             elif mode == MODE_PAGE:
-                feedback = page.on_event(event)
+                feedback, filename = page.on_event(event)
                 if action == event_checker.EVENT_QUIT:
                     mode = MODE_LIBRARY
                     page.store_page()
@@ -121,6 +123,7 @@ def main():
                         say(word['title'])
                     elif word['type'] == 'Time':
                         say(time.ctime())
+
             elif mode == SUBMODE_PLAYSOUND:
                 feedback = player.on_action(action, pos, event)
                 if action == event_checker.EVENT_QUIT or action == event_checker.EVENT_RIGHT:
@@ -128,7 +131,9 @@ def main():
                     say("quit play")
                     continue
 
-            if feedback:
+            if filename and os.path.exists(filename):
+                player.load(filename)
+            elif feedback:
                 say(feedback)
 
             #################

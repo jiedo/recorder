@@ -13,7 +13,8 @@ class Page():
         self.pageid = pageid
         self.page = json.loads(open("pages/page-%d.json" % self.pageid).read())
         self.rect_need_draw = []
-        self.last_pos = (0, 0)
+        self.last_block_pos = (0, 0)
+        self.last_block_mark = (0, 0, 0)
         self.last_vector = (0, 0)
         self.total_angle = 0
 
@@ -405,6 +406,7 @@ class Page():
 
     def on_event(self, event):
         feedback = ""
+        need_check_current_sound_file = False
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_3:
                 self.new_section()
@@ -419,29 +421,35 @@ class Page():
             if event.key == pygame.K_h:
                 if self.prev_word():
                     feedback += "previous word. "
+                    need_check_current_sound_file = True
                 else:
                     feedback += "none. "
             elif event.key == pygame.K_l:
                 if self.next_word():
                     feedback += "next word. "
+                    need_check_current_sound_file = True
                 else:
                     feedback += "none. "
             if event.key == pygame.K_k:
                 if not self.prev_statement():
                     if self.prev_section():
                         feedback += "previous section. "
+                        need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 else:
                     feedback += "previous statements. "
+                    need_check_current_sound_file = True
             elif event.key == pygame.K_j:
                 if not self.next_statement():
                     if self.next_section():
                         feedback += "next section. "
+                        need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 else:
                     feedback += "next statements. "
+                    need_check_current_sound_file = True
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
@@ -458,11 +466,13 @@ class Page():
                 if event.button == 5:
                     if self.next_word():
                         feedback += "next word. "
+                        need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 elif event.button == 4:
                     if self.prev_word():
                         feedback += "previous word. "
+                        need_check_current_sound_file = True
                     else:
                         feedback += "none. "
             elif choice == 1:
@@ -471,18 +481,22 @@ class Page():
                     if not self.next_statement():
                         if self.next_section():
                             feedback += "next section. "
+                            need_check_current_sound_file = True
                         else:
                             feedback += "none. "
                     else:
                         feedback += "next statements. "
+                        need_check_current_sound_file = True
                 elif event.button == 4:
                     if not self.prev_statement():
                         if self.prev_section():
                             feedback += "previous section. "
+                            need_check_current_sound_file = True
                         else:
                             feedback += "none. "
                     else:
                         feedback += "previous statements. "
+                        need_check_current_sound_file = True
             elif choice == 2:
                 # Create
                 if event.button == 5:
@@ -502,12 +516,24 @@ class Page():
             #Nav by point to
             x, y = event.pos
             col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK
-            (sectioni, statementi, wordi) = self.pos_to_mark.get((row, col), (-1, -1, -1))
-            if sectioni >= 0:
-                self.page['mark'] = sectioni
-            if statementi >= 0:
-                self.page['sections'][sectioni]['mark'] = statementi
-            if wordi >= 0:
-                self.page['sections'][sectioni]['statements'][statementi]['mark'] = wordi
+            if self.last_block_pos != (col, row):
+                self.last_block_pos = (col, row)
+                (sectioni, statementi, wordi) = self.pos_to_mark.get((row, col), (-1, -1, -1))
+                if self.last_block_mark != (sectioni, statementi, wordi):
+                    self.last_block_mark = (sectioni, statementi, wordi)
+                    print self.last_block_mark, (sectioni, statementi, wordi)
+                    need_check_current_sound_file = True
+                    if sectioni >= 0:
+                        self.page['mark'] = sectioni
+                    if statementi >= 0:
+                        self.page['sections'][sectioni]['mark'] = statementi
+                    if wordi >= 0:
+                        self.page['sections'][sectioni]['statements'][statementi]['mark'] = wordi
 
-        return feedback
+        filename = ""
+        if need_check_current_sound_file:
+            filename, create_time = self.get_current_word_sound_filename()
+            if create_time <= 0:
+                filename = ""
+
+        return feedback, filename

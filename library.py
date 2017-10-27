@@ -10,6 +10,7 @@ class Library():
         self.WIN_WIDTH = width
         self.SIZEBLOCK = blocksize
         self.last_pos = (0, 0)
+        self.last_block_mark = (0, 0, 0)
         self.last_vector = (0, 0)
         self.total_angle = 0
         self.pos_to_mark = {}
@@ -434,6 +435,7 @@ class Library():
 
     def on_event(self, event):
         feedback = ""
+        need_check_current_sound_file = False
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_3:
                 self.new_shelf()
@@ -448,29 +450,35 @@ class Library():
             if event.key == pygame.K_h:
                 if self.prev_page():
                     feedback += "previous page. "
+                    need_check_current_sound_file = True
                 else:
                     feedback += "none. "
             elif event.key == pygame.K_l:
                 if self.next_page():
                     feedback += "next page. "
+                    need_check_current_sound_file = True
                 else:
                     feedback += "none. "
             if event.key == pygame.K_k:
                 if not self.prev_book():
                     if self.prev_shelf():
                         feedback += "previous shelf. "
+                        need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 else:
                     feedback += "previous book. "
+                    need_check_current_sound_file = True
             elif event.key == pygame.K_j:
                 if not self.next_book():
                     if self.next_shelf():
                         feedback += "previous shelf. "
+                        need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 else:
                     feedback += "previous book. "
+                    need_check_current_sound_file = True
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
@@ -487,11 +495,13 @@ class Library():
                 if event.button == 5:
                     if self.next_page():
                         feedback += "next page. "
+                        need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 elif event.button == 4:
                     if self.prev_page():
                         feedback += "previous page. "
+                        need_check_current_sound_file = True
                     else:
                         feedback += "none. "
             elif choice == 1:
@@ -500,18 +510,22 @@ class Library():
                     if not self.next_book():
                         if self.next_shelf():
                             feedback += "next shelf. "
+                            need_check_current_sound_file = True
                         else:
                             feedback += "none. "
                     else:
                         feedback += "next book. "
+                        need_check_current_sound_file = True
                 elif event.button == 4:
                     if not self.prev_book():
                         if self.prev_shelf():
                             feedback += "previous shelf. "
+                            need_check_current_sound_file = True
                         else:
                             feedback += "none. "
                     else:
                         feedback += "previous book. "
+                        need_check_current_sound_file = True
             elif choice == 2:
                 # Create (b1+!b3)
                 if event.button == 5:
@@ -531,12 +545,24 @@ class Library():
             #Nav by point to
             x, y = event.pos
             col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK
-            (shelfi, booki, pagei) = self.pos_to_mark.get((row, col), (-1, -1, -1))
-            if shelfi >= 0:
-                self.library['mark'] = shelfi
-            if booki >= 0:
-                self.library['shelfs'][shelfi]['mark'] = booki
-            if pagei >= 0:
-                self.library['shelfs'][shelfi]['books'][booki]['mark'] = pagei
+            if self.last_pos != (col, row):
+                self.last_pos = (col, row)
+                (shelfi, booki, pagei) = self.pos_to_mark.get((row, col), (-1, -1, -1))
+                if self.last_block_mark != (shelfi, booki, pagei):
+                    self.last_block_mark = (shelfi, booki, pagei)
+                    print self.last_block_mark, (shelfi, booki, pagei)
+                    need_check_current_sound_file = True
+                    if shelfi >= 0:
+                        self.library['mark'] = shelfi
+                    if booki >= 0:
+                        self.library['shelfs'][shelfi]['mark'] = booki
+                    if pagei >= 0:
+                        self.library['shelfs'][shelfi]['books'][booki]['mark'] = pagei
 
-        return feedback
+        filename = ""
+        if need_check_current_sound_file:
+            filename, create_time = self.get_current_page_sound_filename()
+            if create_time <= 0:
+                filename = ""
+
+        return feedback, filename
