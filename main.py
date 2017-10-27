@@ -3,11 +3,12 @@
 import pygame
 import time
 import sys
+import os
 
 from library import Library
 from page import Page
 from sound import play, say, Recorder, Player
-from event import EventChecker
+import event_checker
 
 #constants
 WIN_HEIGHT = 3840
@@ -51,7 +52,7 @@ def main():
     done = 0
     start_time = 0
 
-    event_checker = EventChecker()
+    event_checker_obj = event_checker.EventChecker()
 
     last_flash_display_time = time.time()
     while not done:
@@ -75,14 +76,14 @@ def main():
 
         for event in pygame.event.get():
             display_need_reflash = True
-            action, pos = event_checker.do(event)
+            action, pos = event_checker_obj.do(event)
             if mode == MODE_LIBRARY:
                 feedback = library.on_event(event)
-                if action == "quit":
+                if action == event_checker.EVENT_QUIT:
                     library.store_library()
                     done = 1
                     break
-                elif action == "enter":
+                elif action == event_checker.EVENT_ENTER:
                     results = library.get_current_page_id()
                     if not results:
                         say("ignored")
@@ -91,7 +92,7 @@ def main():
                     say("load page %d" % page_id)
                     page.load_page(page_id)
                     mode = MODE_PAGE
-                elif action == "left":
+                elif action == event_checker.EVENT_LEFT:
                     # enter page mode
                     results = library.get_current_page_id()
                     if not results:
@@ -102,15 +103,15 @@ def main():
                     mode = MODE_PAGE
             elif mode == MODE_PAGE:
                 feedback = page.on_event(event)
-                if action == "quit":
+                if action == event_checker.EVENT_QUIT:
                     mode = MODE_LIBRARY
                     page.store_page()
                     say("back to library")
-                elif action == "enter":
+                elif action == event_checker.EVENT_ENTER:
                     mode = MODE_LIBRARY
                     page.store_page()
                     say("back to library")
-                elif action == "left":
+                elif action == event_checker.EVENT_LEFT:
                     word = page.get_current_word()
                     if word['type'] == 'Close':
                         mode = MODE_LIBRARY
@@ -122,7 +123,7 @@ def main():
                         say(time.ctime())
             elif mode == SUBMODE_PLAYSOUND:
                 feedback = player.on_action(action, pos, event)
-                if action == "quit" or action == "right":
+                if action == event_checker.EVENT_QUIT or action == event_checker.EVENT_RIGHT:
                     mode = last_mode
                     say("quit play")
                     continue
@@ -131,7 +132,7 @@ def main():
                 say(feedback)
 
             #################
-            if action == "right":
+            if action == event_checker.EVENT_RIGHT:
                 if mode == MODE_LIBRARY:
                     filename, create_time = library.get_current_page_sound_filename()
                 elif mode == MODE_PAGE:
@@ -139,24 +140,24 @@ def main():
                 else:
                     continue
                 # enter playsound mode
-                if create_time > 0:
+                if create_time > 0 and os.path.exists(filename):
                     last_mode, mode = mode, SUBMODE_PLAYSOUND
                     player.load(filename)
                 else:
                     say("no sound")
 
-            elif action == "both":
+            elif action == event_checker.EVENT_BOTH:
                 if mode not in [MODE_LIBRARY, MODE_PAGE]:
                     continue
                 # enter record mode
                 last_mode, mode = mode, SUBMODE_RECORDSOUND
                 start_time = time.time()
                 recorder.start()
-            elif action == "wheel-up" or action == "wheel-down":
+            elif action == event_checker.EVENT_WHEEL_UP or action == event_checker.EVENT_WHEEL_DOWN:
                 # cancel recording
                 if mode == SUBMODE_RECORDSOUND:
                     mode = last_mode
-            elif action == "!both":
+            elif action == event_checker.EVENT_BOTH_RELEASE:
                 # save the audio data
                 if mode != SUBMODE_RECORDSOUND:
                     continue

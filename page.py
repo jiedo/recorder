@@ -21,6 +21,14 @@ class Page():
         self.runtime_row = 0
         self.runtime_col = 0
 
+        self.color_word_with_sound_very_current = (0, 0, 0)
+        self.color_word_with_sound_current = (0, 0, 0)
+        self.color_word_with_sound_not_current = (140, 140, 140)
+
+        self.color_word_very_current_close = (200, 0, 0)
+        self.color_word_current_close = (160, 40, 40)
+        self.color_word_not_current_close = (100, 20, 20)
+
         self.color_word_very_current = (0, 200, 0)
         self.color_word_current = (180, 180, 180)
         self.color_word_not_current = (40, 40, 40)
@@ -53,13 +61,29 @@ class Page():
 
 
     def draw_word(self, surface, word, is_current_section, is_current_statement, is_current, rect):
-        color = self.color_word_not_current
+        if word['type'] == 'Close':
+            color = self.color_word_not_current_close
+        else:
+            color = self.color_word_not_current
+        rec_color = self.color_word_with_sound_not_current
         if is_current:
             if is_current_section:
                 if is_current_statement:
-                    color = self.color_word_very_current
+                    rec_color = self.color_word_with_sound_very_current
+                    if word['type'] == 'Close':
+                        color = self.color_word_very_current_close
+                    else:
+                        color = self.color_word_very_current
                 else:
-                    color = self.color_word_current
+                    rec_color = self.color_word_with_sound_current
+                    if word['type'] == 'Close':
+                        color = self.color_word_current_close
+                    else:
+                        color = self.color_word_current
+
+        if word['create_time'] > 0:
+            self.draw_rect(surface, rec_color, rect, margin=6+(2+2*(self.SIZEBLOCK-6)/3))
+
         self.draw_rect(surface, color, rect, margin=6)
 
 
@@ -421,8 +445,28 @@ class Page():
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
-            # Nav statement
-            if b1 and not b3:
+            choice = 0
+            if b1:
+                if b3: choice = 3
+                else: choice = 2
+            else:
+                if b3: choice = 1
+                else: choice = 0
+
+            if choice == 0:
+                # Nav word
+                if event.button == 5:
+                    if self.next_word():
+                        feedback += "next word. "
+                    else:
+                        feedback += "none. "
+                elif event.button == 4:
+                    if self.prev_word():
+                        feedback += "previous word. "
+                    else:
+                        feedback += "none. "
+            elif choice == 1:
+                # Nav statement
                 if event.button == 5:
                     if not self.next_statement():
                         if self.next_section():
@@ -439,31 +483,15 @@ class Page():
                             feedback += "none. "
                     else:
                         feedback += "previous statements. "
-
-            # Nav word
-            if not b1 and not b3:
-                if event.button == 5:
-                    if self.next_word():
-                        feedback += "next word. "
-                    else:
-                        feedback += "none. "
-                elif event.button == 4:
-                    if self.prev_word():
-                        feedback += "previous word. "
-                    else:
-                        feedback += "none. "
-
-            # Create
-            if b3 and not b1:
+            elif choice == 2:
+                # Create
                 if event.button == 5:
                     self.new_word()
                     feedback += "new word. "
                 elif event.button == 4:
                     self.new_statement()
                     feedback += "new statements. "
-
-            # Swap block
-            if b3 and b1:
+            elif choice == 3:
                 # Swap block
                 if event.button == 5:
                     self.swap_word()
@@ -482,81 +510,4 @@ class Page():
             if wordi >= 0:
                 self.page['sections'][sectioni]['statements'][statementi]['mark'] = wordi
 
-            #Nav by draw circle and button
-            # a, b = self.last_vector
-            # c, d = event.rel
-            # b1, b2, b3 = event.buttons
-            # diff = self.SIZEBLOCK*3
-            # self.last_vector = (c, d)
-            # e = b*(a+c) - a*(b+d)
-            # self.total_angle += e
-            # if b3:
-            #     while self.total_angle >= diff:
-            #         if not self.next_statement():
-            #             self.next_section()
-            #         self.total_angle-=diff
-            #     while self.total_angle <= -diff:
-            #         if not self.prev_statement():
-            #             self.prev_section()
-            #         self.total_angle+=diff
-            # else:
-            #     while self.total_angle >= diff:
-            #         self.next_word()
-            #         self.total_angle -= diff
-            #     while self.total_angle <= -diff:
-            #         self.prev_word()
-            #         self.total_angle += diff
-
-
-            #Nav by wheel and button
-            # b1, b2, b3 = event.buttons
-            # diff = self.SIZEBLOCK
-            # dx, dy = event.rel
-            # x, y = self.last_pos
-            # dt = 4
-            # if dx > 0:
-            #     dx = dx*dx/dt
-            # else:
-            #     dx = -dx*dx/dt
-            # if dy > 0:
-            #     dy = dy*dy/dt
-            # else:
-            #     dy = -dy*dy/dt
-            # if b1:
-            #     y += dy
-            #     while y >= diff:
-            #         if not self.next_statement():
-            #             self.next_section()
-            #         y-=diff
-            #     while y <= -diff:
-            #         if not self.prev_statement():
-            #             self.prev_section()
-            #         y+=diff
-            # else:
-            #     x += dx
-            #     while x >= diff:
-            #         self.next_word()
-            #         x -= diff
-            #     while x <= -diff:
-            #         self.prev_word()
-            #         x += diff
-            # self.last_pos = (x, y)
-
-
-            # mod = pygame.key.get_mods()
-            # if e.button == 5:
-            #     if mod & KMOD_CTRL:
-            #         next_statement()
-            #     elif mod & KMOD_ALT:
-            #         next_section()
-            #     else:
-            #         next_word()
-
-            # elif e.button == 4:
-            #     if mod & KMOD_CTRL:
-            #         prev_statement()
-            #     elif mod & KMOD_ALT:
-            #         prev_section()
-            #     else:
-            #         prev_word()
         return feedback

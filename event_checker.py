@@ -3,6 +3,21 @@
 import pygame
 import time
 
+
+EVENT_NONE = ""
+EVENT_ENTER = "enter"
+EVENT_QUIT = "quit"
+EVENT_BOTH = "both"
+EVENT_WHEEL_UP = "wheel-up"
+EVENT_WHEEL_DOWN = "wheel-down"
+EVENT_LEFT = "left"
+EVENT_RIGHT = "right"
+EVENT_BOTH_RELEASE = "!both"
+EVENT_LEFT_DRAG = "left-drag"
+EVENT_RIGHT_DRAG = "right-drag"
+EVENT_BOTH_DRAG = "both-drag"
+EVENT_MOVE = "move"
+
 class EventChecker():
     def __init__(self):
         self.pure_left_button_up = False
@@ -14,16 +29,16 @@ class EventChecker():
         self.button3 = False
 
     def do(self, event):
-        action = ""
+        action = EVENT_NONE
         pos = (0, 0)
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_RETURN:
-                action = "enter"
+                action = EVENT_ENTER
             elif event.key == pygame.K_ESCAPE:
-                action = "quit"
+                action = EVENT_QUIT
 
         if event.type == pygame.QUIT:
-            action = "quit"
+            action = EVENT_QUIT
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             pos = event.pos
@@ -48,7 +63,7 @@ class EventChecker():
             # press button1 + button3 at the sametime, beside, without any other button pressed
             if button3 and button1 and (event.button == 1 or event.button == 3):
                 self.pure_left_right_button_up = True
-                action = "both"
+                action = EVENT_BOTH
             if event.button == 4 or event.button == 5:
                 self.pure_left_right_button_up = False
 
@@ -68,24 +83,24 @@ class EventChecker():
 
             # use wheel
             if event.button == 4:
-                action = "wheel-up"
+                action = EVENT_WHEEL_UP
             if event.button == 5:
-                action = "wheel-down"
+                action = EVENT_WHEEL_DOWN
 
             # only left click
             if event.button == 1 and self.pure_left_button_up:
                 self.pure_left_button_up = False
-                action = "left"
+                action = EVENT_LEFT
 
             # only right click
             if event.button == 3 and self.pure_right_button_up:
                 self.pure_right_button_up = False
-                action = "right"
+                action = EVENT_RIGHT
 
             # release button1 + button3
             if (event.button == 1 or event.button == 3) and (not button1 and not button3) and self.pure_left_right_button_up:
                 self.pure_left_right_button_up = False
-                action = "!both"
+                action = EVENT_BOTH_RELEASE
 
         elif event.type == pygame.MOUSEMOTION:
             if self.last_pos:
@@ -93,11 +108,11 @@ class EventChecker():
                 pos = event.pos
                 button1, button2, button3 = event.buttons
                 if button1 and not button3:
-                    action = "left-drag"
+                    action = EVENT_LEFT_DRAG
                 elif button3 and not button1:
-                    action = "right-drag"
+                    action = EVENT_RIGHT_DRAG
                 elif button1 and button3:
-                    action = "both-drag"
+                    action = EVENT_BOTH_DRAG
 
                 pos = (pos[0] - self.last_pos[0],
                        pos[1] - self.last_pos[1])
@@ -107,7 +122,7 @@ class EventChecker():
                     self.pure_right_button_up = False
                     self.pure_left_right_button_up = False
             else:
-                action = "move"
+                action = EVENT_MOVE
                 pos = event.rel
 
         return action, pos

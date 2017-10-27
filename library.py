@@ -16,6 +16,10 @@ class Library():
         self.runtime_row = 0
         self.runtime_col = 0
 
+        self.color_page_with_sound_very_current = (0, 0, 0)
+        self.color_page_with_sound_current = (0, 0, 0)
+        self.color_page_with_sound_not_current = (140, 140, 140)
+
         self.color_page_very_current = (0, 200, 200)
         self.color_page_current = (180, 180, 180)
         self.color_page_not_current = (40, 40, 40)
@@ -57,12 +61,19 @@ class Library():
 
     def draw_page(self, surface, page, is_current_shelf, is_current_book, is_current, rect):
         color = self.color_page_not_current
+        rec_color = self.color_page_with_sound_not_current
         if is_current:
             if is_current_shelf:
                 if is_current_book:
                     color = self.color_page_very_current
+                    rec_color = self.color_page_with_sound_very_current
                 else:
                     color = self.color_page_current
+                    rec_color = self.color_page_with_sound_current
+
+        if page['create_time'] > 0:
+            self.draw_rect(surface, rec_color, rect, margin=6+(2+2*(self.SIZEBLOCK-6)/3))
+
         self.draw_rect(surface, color, rect, margin=6)
 
 
@@ -434,7 +445,6 @@ class Library():
                 self.new_page()
                 feedback += "new page. "
 
-
             if event.key == pygame.K_h:
                 if self.prev_page():
                     feedback += "previous page. "
@@ -464,8 +474,28 @@ class Library():
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
-            # Nav book
-            if b1 and not b3:
+            choice = 0
+            if b1:
+                if b3: choice = 3
+                else: choice = 2
+            else:
+                if b3: choice = 1
+                else: choice = 0
+
+            if choice == 0:
+                # Nav page (!b1+!b3)
+                if event.button == 5:
+                    if self.next_page():
+                        feedback += "next page. "
+                    else:
+                        feedback += "none. "
+                elif event.button == 4:
+                    if self.prev_page():
+                        feedback += "previous page. "
+                    else:
+                        feedback += "none. "
+            elif choice == 1:
+                # Nav book (!b1+b3)
                 if event.button == 5:
                     if not self.next_book():
                         if self.next_shelf():
@@ -482,31 +512,16 @@ class Library():
                             feedback += "none. "
                     else:
                         feedback += "previous book. "
-            # Nav page
-            if not b1 and not b3:
-                if event.button == 5:
-                    if self.next_page():
-                        feedback += "next page. "
-                    else:
-                        feedback += "none. "
-                elif event.button == 4:
-                    if self.prev_page():
-                        feedback += "previous page. "
-                    else:
-                        feedback += "none. "
-
-            # Create
-            if b3 and not b1:
+            elif choice == 2:
+                # Create (b1+!b3)
                 if event.button == 5:
                     self.new_page()
                     feedback += "new page. "
                 elif event.button == 4:
                     self.new_book()
                     feedback += "new book. "
-
-            # Swap block
-            if b3 and b1:
-                # Swap block
+            elif choice == 3:
+                # Swap block (b1+b3)
                 if event.button == 5:
                     self.swap_page()
                 elif event.button == 4:
@@ -523,84 +538,5 @@ class Library():
                 self.library['shelfs'][shelfi]['mark'] = booki
             if pagei >= 0:
                 self.library['shelfs'][shelfi]['books'][booki]['mark'] = pagei
-
-            #Nav by draw circle and button
-            # a, b = self.last_vector
-            # c, d = event.rel
-            # b1, b2, b3 = event.buttons
-            # diff = self.SIZEBLOCK*3
-            # self.last_vector = (c, d)
-            # e = b*(a+c) - a*(b+d)
-            # self.total_angle += e
-            # if b3:
-            #     while self.total_angle >= diff:
-            #         if not self.next_book():
-            #             self.next_shelf()
-            #         self.total_angle-=diff
-            #     while self.total_angle <= -diff:
-            #         if not self.prev_book():
-            #             self.prev_shelf()
-            #         self.total_angle+=diff
-            # else:
-            #     while self.total_angle >= diff:
-            #         self.next_page()
-            #         self.total_angle -= diff
-            #     while self.total_angle <= -diff:
-            #         self.prev_page()
-            #         self.total_angle += diff
-
-
-            #Nav by wheel and button
-            # b1, b2, b3 = event.buttons
-            # diff = self.SIZEBLOCK
-            # dx, dy = event.rel
-            # x, y = self.last_pos
-            # dt = 4
-            # if dx > 0:
-            #     dx = dx*dx/dt
-            # else:
-            #     dx = -dx*dx/dt
-            # if dy > 0:
-            #     dy = dy*dy/dt
-            # else:
-            #     dy = -dy*dy/dt
-            # if b1:
-            #     y += dy
-            #     while y >= diff:
-            #         if not self.next_book():
-            #             self.next_shelf()
-            #         y-=diff
-            #     while y <= -diff:
-            #         if not self.prev_book():
-            #             self.prev_shelf()
-            #         y+=diff
-            # else:
-            #     x += dx
-            #     while x >= diff:
-            #         self.next_page()
-            #         x -= diff
-            #     while x <= -diff:
-            #         self.prev_page()
-            #         x += diff
-            # self.last_pos = (x, y)
-
-
-            #Nav by wheel and key
-            # mod = pygame.key.get_mods()
-            # if e.button == 5:
-            #     if mod & KMOD_CTRL:
-            #         next_book()
-            #     elif mod & KMOD_ALT:
-            #         next_shelf()
-            #     else:
-            #         next_page()
-
-            # elif e.button == 4:
-            #     if mod & KMOD_CTRL:
-            #         prev_book()
-            #     elif mod & KMOD_ALT:
-            #         prev_shelf()
-            #     else:
-            #         prev_page()
 
         return feedback

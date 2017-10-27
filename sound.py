@@ -8,6 +8,7 @@ import subprocess
 import pygame
 import time
 import alsaaudio
+import event_checker
 
 
 def play(filename):
@@ -93,7 +94,7 @@ class Player():
         self.latest_volume = 50
         self.latest_point = 0
 
-        self.last_action = ""
+        self.last_action = event_checker.EVENT_NONE
         self.audio_object = pyaudio.PyAudio()
         self.mixer = alsaaudio.Mixer()
 
@@ -133,12 +134,12 @@ class Player():
     def on_action(self, action, pos, event):
         k = 0.618
 
-        if action == "enter":
+        if action == event_checker.EVENT_ENTER:
             say("play or pause")
-        elif action == "right":
+        elif action == event_checker.EVENT_RIGHT:
             self.stream.close()
             self.wf.close()
-        elif action == "left":
+        elif action == event_checker.EVENT_LEFT:
             if self.stream.is_active():
                 self.stream.stop_stream()
             elif not self.stream.is_stopped():
@@ -148,7 +149,7 @@ class Player():
             else:
                 self.stream.start_stream()
 
-        elif action == "left-drag":
+        elif action == event_checker.EVENT_LEFT_DRAG:
             x, y = pos
             dx = 100*x/(self.width * (1 - (1-k) * (1-k))*k)
             if self.last_action != action:
@@ -170,13 +171,13 @@ class Player():
                 self.volume = 100
             self.mixer.setvolume(self.volume)
 
-        elif action == "right-drag":
+        elif action == event_checker.EVENT_RIGHT_DRAG:
             pass
 
-        elif action == "wheel-up" or action == "wheel-down":
-            if action == "wheel-up":
+        elif action == event_checker.EVENT_WHEEL_UP or action == event_checker.EVENT_WHEEL_DOWN:
+            if action == event_checker.EVENT_WHEEL_UP:
                 dy = 10
-            elif action == "wheel-down":
+            elif action == event_checker.EVENT_WHEEL_DOWN:
                 dy = -10
             self.speed += int(dy)
             if self.speed < 0:
@@ -186,9 +187,9 @@ class Player():
 
             self.init_stream()
 
-        elif action == "both":
+        elif action == event_checker.EVENT_BOTH:
             say("press both ")
-        elif action == "!both":
+        elif action == event_checker.EVENT_BOTH_RELEASE:
             if self.stream.is_active():
                 self.stream.stop_stream()
             elif not self.stream.is_stopped():
