@@ -15,8 +15,13 @@ def play(filename):
     soundObj = pygame.mixer.Sound(filename)
     soundObj.play()
 
-
 def say(phrase):
+    filename = tts(phrase)
+    play(filename)
+    os.remove(filename)
+
+
+def tts(phrase):
     voice = "en"
     pitch_adjustment = 40
     words_per_minute = 200
@@ -33,8 +38,7 @@ def say(phrase):
         subprocess.call(cmd, stdout=f, stderr=f)
         f.seek(0)
         output = f.read()
-    play(fname)
-    os.remove(fname)
+    return fname
 
 
 class Recorder():
@@ -101,13 +105,10 @@ class Player():
 
     def play_callback(self, in_data, frame_count, time_info, status):
         if not self.wf:
-            play("sounds/beep_lo.wav")
             return ("", pyaudio.paAbort)
 
         data = self.wf.readframes(frame_count)
         self.point = 100 * self.wf.tell() / self.nframes
-        if len(data) == 0:
-            play("sounds/beep_lo.wav")
         return (data, pyaudio.paContinue)
 
 

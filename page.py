@@ -3,15 +3,175 @@
 import pygame
 import time
 import json
+from sound import tts
+
+
+class WikiPageLoader():
+    def __init__(self, page):
+        self.page_profile = page
+        self.page = {
+            'id': 0,
+            'type': "Wiki",
+            'title': page['title'],
+            'sections': [{
+                "title": "section-1",
+                "statements": [{
+                    "title": "statement-1",
+                    "id": 1,
+                    "words": [{
+                        "type": "Close", # Close/Word/Page/Time/Link/...
+                        "start": 0,
+                        "update_time": 0,
+                        "create_time": 0,
+                        "end": 0,
+                        "statement-id": 1,
+                        "title": "word-1",
+                        "timestamp": 0,
+                        "section-id": 1,
+                        "id": 1,
+                        "ancher": {
+                            "pageid": 0,
+                            "ancher": ""
+                        }
+                    }],
+                    "mark": 0
+                }],
+                "id": 1,
+                "mark": 0
+            }],
+            'mark': 0,
+            'max_section_id': 1,
+            'max_statement_id': 1,
+            'max_word_id': 1,
+        }
+
+
+    def load_page(self):
+        for i in range(8):
+            self.page['mark'] = i
+            self.new_section()
+            for j in range(15):
+                self.page['sections'][i]['mark'] = j
+                self.new_statement()
+                for k in range(71):
+                    self.new_word()
+        return self.page
+
+
+    def new_section(self):
+        self.page['max_section_id'] += 1
+        section = {
+            'mark': 0,
+            'id': self.page['max_section_id'],
+            'title': "section-%d" % self.page['max_section_id'],
+            'statements': []
+        }
+        current_idx = self.page['mark']
+        self.page['sections'][current_idx:current_idx] = [section]
+
+
+    def new_statement(self):
+        current_section_idx = self.page['mark']
+        if len(self.page['sections']) == 0:
+            self.new_section()
+        current_section = self.page['sections'][current_section_idx]
+        self.page['max_statement_id'] += 1
+        statement = {
+            'mark': 0,
+            'id': self.page['max_statement_id'],
+            'title': "statement-%d" % self.page['max_statement_id'],
+            'words': []
+        }
+        current_idx = current_section['mark']
+        current_section['statements'][current_idx:current_idx] = [statement]
+
+
+    def new_word(self):
+        current_section_idx = self.page['mark']
+        if len(self.page['sections']) == 0:
+            self.new_section()
+        current_section = self.page['sections'][current_section_idx]
+        if len(current_section['statements']) == 0:
+            self.new_statement()
+        current_statement_idx = current_section['mark']
+        current_statement = current_section['statements'][current_statement_idx]
+        self.page['max_word_id'] += 1
+        word = {
+            'id': self.page['max_word_id'],
+            'type': 'Word',
+            'title': "word-%d" % self.page['max_word_id'],
+            'timestamp': 0,
+            'create_time': 0,
+            'update_time': 0,
+            'start': 0,
+            'end': 0,
+            'ancher': {'pageid': 0, 'ancher': ""},
+            'section-id': current_section['id'],
+            'statement-id': current_statement['id'],
+        }
+        current_idx = current_statement['mark']
+        current_statement['words'][current_idx:current_idx] = [word]
+
+
+    def store_page(self):
+        page_string = json.dumps(self.page, indent=2)
+        open("pages/page-wiki.json",
+             "w").write(page_string)
+
+    def get_word_sound_filename(self, word):
+        filename = tts(word['title'])
+        return filename, int(time.time() * 1000)
+
+    def set_page_data(self, data):
+        return ""
+
+    def get_page_title(self):
+        return ""
+
+    def get_page_info(self):
+        return ""
+
+
+class VoicePageLoader():
+    def __init__(self, page):
+        self.page_profile = page
+        self.pageid = page['id']
+
+    def load_page(self):
+        self.page = json.loads(open("pages/page-%d.json" % self.pageid).read())
+        return self.page
+
+    def store_page(self):
+        page_string = json.dumps(self.page, indent=2)
+        open("pages/page-%d.json" % self.pageid,
+             "w").write(page_string)
+
+    def get_word_sound_filename(self, word):
+        shelf_id, book_id, page_id, word_id, create_time = (self.page['shelf-id'], self.page['book-id'], self.page['id'],
+                                                            word['id'], word['create_time'])
+        filename = "sounds/shelf.%d-book.%d-page.%d-word.%d.wav" % (shelf_id, book_id, page_id, word_id)
+        return filename, create_time
+
+    def set_page_data(self, data):
+        return ""
+
+    def get_page_title(self):
+        return ""
+
+    def get_page_info(self):
+        return ""
+
+
 
 class Page():
     def __init__(self, width, blocksize):
         self.WIN_WIDTH = width
         self.SIZEBLOCK = blocksize
+        self.page_loader = None
 
-    def load_page(self, pageid):
-        self.pageid = pageid
-        self.page = json.loads(open("pages/page-%d.json" % self.pageid).read())
+    def load_page(self, page_loader):
+        self.page_loader = page_loader
+        self.page = self.page_loader.load_page()
         self.rect_need_draw = []
         self.last_block_pos = (0, 0)
         self.last_block_mark = (0, 0, 0)
@@ -44,10 +204,7 @@ class Page():
         self.color_section = (0, 0, 0)
 
     def store_page(self):
-        page_string = json.dumps(self.page, indent=2)
-        open("pages/page-%d.json" % self.pageid,
-             "w").write(page_string)
-
+        self.page_loader.store_page()
 
     def update_page_display(self, surface):
         self.rect_need_draw.reverse()
@@ -356,10 +513,8 @@ class Page():
         word = self.get_current_word()
         if not word:
             return "", 0
-        shelf_id, book_id, page_id, word_id, create_time = (self.page['shelf-id'], self.page['book-id'], self.page['id'],
-                                                            word['id'], word['create_time'])
-        filename = "sounds/shelf.%d-book.%d-page.%d-word.%d.wav" % (shelf_id, book_id, page_id, word_id)
-        return filename, create_time
+
+        return self.page_loader.get_word_sound_filename(word)
 
 
     def get_current_word(self):
@@ -521,7 +676,6 @@ class Page():
                 (sectioni, statementi, wordi) = self.pos_to_mark.get((row, col), (-1, -1, -1))
                 if self.last_block_mark != (sectioni, statementi, wordi):
                     self.last_block_mark = (sectioni, statementi, wordi)
-                    print self.last_block_mark, (sectioni, statementi, wordi)
                     need_check_current_sound_file = True
                     if sectioni >= 0:
                         self.page['mark'] = sectioni

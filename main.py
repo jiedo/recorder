@@ -6,7 +6,7 @@ import sys
 import os
 
 from library import Library
-from page import Page
+from page import Page, VoicePageLoader, WikiPageLoader
 from sound import play, say, Recorder, Player
 import event_checker
 
@@ -84,23 +84,22 @@ def main():
                     library.store_library()
                     done = 1
                     break
-                elif action == event_checker.EVENT_ENTER:
-                    results = library.get_current_page_id()
-                    if not results:
-                        say("ignored")
+                elif action == event_checker.EVENT_LEFT or action == event_checker.EVENT_ENTER:
+                    current_page = library.get_current_page()
+                    if not current_page:
+                        say("load page, but no page here.")
                         continue
-                    shelf_id, book_id, page_id, _ = results
-                    say("load page %d" % page_id)
-                    page.load_page(page_id)
-                    mode = MODE_PAGE
-                elif action == event_checker.EVENT_LEFT:
-                    # enter page mode
-                    results = library.get_current_page_id()
-                    if not results:
+
+                    if current_page['type'] == 'Voice':
+                        say("load page voice")
+                        PageLoader = VoicePageLoader
+                    elif current_page['type'] == 'Wiki':
+                        say("load page wiki")
+                        PageLoader = WikiPageLoader
+                    else:
+                        say("ignored page type: %s" % current_page['type'])
                         continue
-                    shelf_id, book_id, page_id, _ = results
-                    say("load page %d" % page_id)
-                    page.load_page(page_id)
+                    page.load_page(PageLoader(current_page))
                     mode = MODE_PAGE
 
             elif mode == MODE_PAGE:
@@ -109,24 +108,20 @@ def main():
                     mode = MODE_LIBRARY
                     page.store_page()
                     say("back to library")
-                elif action == event_checker.EVENT_ENTER:
-                    mode = MODE_LIBRARY
-                    page.store_page()
-                    say("back to library")
-                elif action == event_checker.EVENT_LEFT:
-                    word = page.get_current_word()
-                    if word['type'] == 'Close':
+                elif action == event_checker.EVENT_LEFT or action == event_checker.EVENT_ENTER:
+                    current_word = page.get_current_word()
+                    if current_word['type'] == 'Close':
                         mode = MODE_LIBRARY
                         page.store_page()
                         say("back to library")
-                    elif word['type'] == 'Word':
-                        say(word['title'])
-                    elif word['type'] == 'Time':
+                    elif current_word['type'] == 'Word':
+                        say(current_word['title'])
+                    elif current_word['type'] == 'Time':
                         say(time.ctime())
 
             elif mode == SUBMODE_PLAYSOUND:
                 feedback = player.on_action(action, pos, event)
-                if action == event_checker.EVENT_QUIT or action == event_checker.EVENT_RIGHT:
+                if action == event_checker.EVENT_RIGHT or action == event_checker.EVENT_QUIT:
                     mode = last_mode
                     say("quit play")
                     continue

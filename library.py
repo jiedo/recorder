@@ -192,6 +192,7 @@ class Library():
         self.library['max_page_id'] += 1
         page = {
             'id': self.library['max_page_id'],
+            'type': "Voice",
             'title': "page-%d" % self.library['max_page_id'],
             'shelf-id': current_shelf['id'],
             'book-id': current_book['id'],
@@ -229,6 +230,9 @@ class Library():
         current_idx = current_book['mark']
         current_book['pages'][current_idx:current_idx] = [{
             "id": self.library['max_page_id'],
+            "type": "Voice",
+            'shelf-id': current_shelf['id'],
+            'book-id': current_book['id'],
             "create_time": 0,
             "update_time": 0,
         }]
@@ -383,15 +387,17 @@ class Library():
 
 
     def get_current_page_sound_filename(self):
-        results = self.get_current_page_id()
-        if not results:
+        page = self.get_current_page()
+        if not page:
             return "", 0
-        shelf_id, book_id, page_id, create_time = results
+        shelf_id, book_id, page_id, create_time = page['shelf-id'], page['book-id'], page['id'], page['create_time']
         filename = "sounds/shelf.%d-book.%d-page.%d.wav" % (shelf_id, book_id, page_id)
         return filename, create_time
 
 
-    def get_current_page_id(self):
+    def get_current_page(self):
+        if 'shelfs' not in self.library:
+            return 0
         length = len(self.library['shelfs'])
         if length <= 0:
             return 0
@@ -408,10 +414,12 @@ class Library():
         current_idx = current_book['mark']
         if current_idx < 0 or current_idx >= length:
             return 0
-        return current_shelf['id'], current_book['id'], current_book['pages'][current_idx]['id'], current_book['pages'][current_idx]['create_time']
+        return current_book['pages'][current_idx]
 
 
     def set_current_page(self, create_time, update_time):
+        if 'shelfs' not in self.library:
+            return 0
         length = len(self.library['shelfs'])
         if length <= 0:
             return 0
@@ -550,7 +558,6 @@ class Library():
                 (shelfi, booki, pagei) = self.pos_to_mark.get((row, col), (-1, -1, -1))
                 if self.last_block_mark != (shelfi, booki, pagei):
                     self.last_block_mark = (shelfi, booki, pagei)
-                    print self.last_block_mark, (shelfi, booki, pagei)
                     need_check_current_sound_file = True
                     if shelfi >= 0:
                         self.library['mark'] = shelfi
