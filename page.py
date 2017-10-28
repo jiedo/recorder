@@ -50,10 +50,10 @@ class WikiPageLoader():
         for i in range(8):
             self.page['mark'] = i
             self.new_section()
-            for j in range(15):
+            for j in range(4):
                 self.page['sections'][i]['mark'] = j
                 self.new_statement()
-                for k in range(71):
+                for k in range(32):
                     self.new_word()
         return self.page
 

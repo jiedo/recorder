@@ -23,16 +23,19 @@ def say(phrase):
 
 def tts(phrase):
     voice = "en"
-    pitch_adjustment = 40
-    words_per_minute = 200
+    amplitude = 60
+    pitch_adjustment = 50
+    words_per_minute = 240
 
     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
         fname = f.name
-    cmd = ['espeak', '-v', voice,
-                     '-p', str(pitch_adjustment),
-                     '-s', str(words_per_minute),
-                     '-w', fname,
-                     phrase]
+    cmd = [
+        'espeak', '-v', voice,
+        '-a', str(amplitude),
+        '-p', str(pitch_adjustment),
+        '-s', str(words_per_minute),
+        '-w', fname,
+        phrase]
 
     with tempfile.TemporaryFile() as f:
         subprocess.call(cmd, stdout=f, stderr=f)
