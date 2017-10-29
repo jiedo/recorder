@@ -148,15 +148,13 @@ class Player():
     def on_action(self, action, pos, event):
         k = 0.618
 
-        if action == event_checker.EVENT_ENTER:
-            say("play or pause")
-        elif action == event_checker.EVENT_RIGHT:
+        if action == event_checker.EVENT_RIGHT_CLICK:
             self.stream.stop_stream()
             self.stream.close()
             self.wf.close()
             self.stream = None
             self.wf = None
-        elif action == event_checker.EVENT_LEFT:
+        elif action == event_checker.EVENT_LEFT_CLICK or action == event_checker.EVENT_SPACE:
             if self.stream.is_active():
                 self.stream.stop_stream()
             elif not self.stream.is_stopped():
@@ -191,10 +189,11 @@ class Player():
         elif action == event_checker.EVENT_RIGHT_DRAG:
             pass
 
-        elif action == event_checker.EVENT_WHEEL_UP or action == event_checker.EVENT_WHEEL_DOWN:
-            if action == event_checker.EVENT_WHEEL_UP:
+        elif (action == event_checker.EVENT_WHEEL_UP or action == event_checker.EVENT_WHEEL_DOWN) or (
+                action == event_checker.EVENT_KEYUP or action == event_checker.EVENT_KEYDOWN):
+            if action == event_checker.EVENT_WHEEL_UP or action == event_checker.EVENT_KEYUP:
                 dy = 10
-            elif action == event_checker.EVENT_WHEEL_DOWN:
+            elif action == event_checker.EVENT_WHEEL_DOWN or action == event_checker.EVENT_KEYDOWN:
                 dy = -10
             self.speed += int(dy)
             if self.speed < 0:
@@ -206,7 +205,7 @@ class Player():
 
         elif action == event_checker.EVENT_BOTH:
             say("press both ")
-        elif action == event_checker.EVENT_BOTH_RELEASE:
+        elif action == event_checker.EVENT_BOTH_RELEASE or action == event_checker.EVENT_ENTER:
             if self.stream.is_active():
                 self.stream.stop_stream()
             elif not self.stream.is_stopped():

@@ -5,13 +5,16 @@ import time
 
 
 EVENT_NONE = ""
+EVENT_SPACE = "space"
 EVENT_ENTER = "enter"
 EVENT_QUIT = "quit"
 EVENT_BOTH = "both"
+EVENT_KEYUP = "keyup"
+EVENT_KEYDOWN = "keydown"
 EVENT_WHEEL_UP = "wheel-up"
 EVENT_WHEEL_DOWN = "wheel-down"
-EVENT_LEFT = "left"
-EVENT_RIGHT = "right"
+EVENT_LEFT_CLICK = "left-click"
+EVENT_RIGHT_CLICK = "right-click"
 EVENT_BOTH_RELEASE = "!both"
 EVENT_LEFT_DRAG = "left-drag"
 EVENT_RIGHT_DRAG = "right-drag"
@@ -36,6 +39,12 @@ class EventChecker():
                 action = EVENT_ENTER
             elif event.key == pygame.K_ESCAPE:
                 action = EVENT_QUIT
+            elif event.key == pygame.K_SPACE:
+                action = EVENT_SPACE
+            elif event.key == pygame.K_UP:
+                action = EVENT_KEYUP
+            elif event.key == pygame.K_DOWN:
+                action = EVENT_KEYDOWN
 
         if event.type == pygame.QUIT:
             action = EVENT_QUIT
@@ -90,12 +99,12 @@ class EventChecker():
             # only left click
             if event.button == 1 and self.pure_left_button_up:
                 self.pure_left_button_up = False
-                action = EVENT_LEFT
+                action = EVENT_LEFT_CLICK
 
             # only right click
             if event.button == 3 and self.pure_right_button_up:
                 self.pure_right_button_up = False
-                action = EVENT_RIGHT
+                action = EVENT_RIGHT_CLICK
 
             # release button1 + button3
             if (event.button == 1 or event.button == 3) and (not button1 and not button3) and self.pure_left_right_button_up:

@@ -84,7 +84,7 @@ def main():
                     library.store_library()
                     done = 1
                     break
-                elif action == event_checker.EVENT_LEFT or action == event_checker.EVENT_ENTER:
+                elif action == event_checker.EVENT_LEFT_CLICK or action == event_checker.EVENT_ENTER:
                     current_page = library.get_current_page()
                     if not current_page:
                         say("load page, but no page here.")
@@ -108,7 +108,7 @@ def main():
                     mode = MODE_LIBRARY
                     page.store_page()
                     say("back to library")
-                elif action == event_checker.EVENT_LEFT or action == event_checker.EVENT_ENTER:
+                elif action == event_checker.EVENT_LEFT_CLICK or action == event_checker.EVENT_ENTER:
                     current_word = page.get_current_word()
                     if current_word['type'] == 'Close':
                         mode = MODE_LIBRARY
@@ -121,7 +121,7 @@ def main():
 
             elif mode == SUBMODE_PLAYSOUND:
                 feedback = player.on_action(action, pos, event)
-                if action == event_checker.EVENT_RIGHT or action == event_checker.EVENT_QUIT:
+                if action == event_checker.EVENT_RIGHT_CLICK or action == event_checker.EVENT_QUIT:
                     mode = last_mode
                     say("quit play")
                     continue
@@ -132,7 +132,7 @@ def main():
                 say(feedback)
 
             #################
-            if action == event_checker.EVENT_RIGHT:
+            if action == event_checker.EVENT_RIGHT_CLICK or action == event_checker.EVENT_SPACE:
                 if mode == MODE_LIBRARY:
                     filename, create_time = library.get_current_page_sound_filename()
                 elif mode == MODE_PAGE:
