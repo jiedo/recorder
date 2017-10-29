@@ -157,6 +157,7 @@ def main():
                 # cancel recording
                 if mode == SUBMODE_RECORDSOUND:
                     mode = last_mode
+                    recorder.flush("sounds/tmp.wav")
             elif action == event_checker.EVENT_BOTH_RELEASE:
                 # save the audio data
                 if mode != SUBMODE_RECORDSOUND:
@@ -167,14 +168,18 @@ def main():
                 elif mode == MODE_PAGE:
                     filename, create_time = page.get_current_word_sound_filename()
                 if not filename:
+                    recorder.flush("sounds/tmp.wav")
                     continue
                 end_time = time.time()
                 if int(end_time - start_time) < 1:
+                    recorder.flush("sounds/tmp.wav")
                     continue
                 if mode == MODE_LIBRARY:
                     library.set_current_page(int(start_time*1000), int(end_time*1000))
                 elif mode == MODE_PAGE:
                     page.set_current_word(int(start_time*1000), int(end_time*1000))
+                if os.path.exists(filename):
+                    os.rename(filename, "%s.%d" % (filename,start_time))
                 recorder.flush(filename)
 
         clock.tick(50)

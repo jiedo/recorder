@@ -673,7 +673,7 @@ class Page():
             col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK
             if self.last_block_pos != (col, row):
                 self.last_block_pos = (col, row)
-                (sectioni, statementi, wordi) = self.pos_to_mark.get((row, col), (-1, -1, -1))
+                (sectioni, statementi, wordi) = self.pos_to_mark.get((row, col), self.last_block_mark)
                 if self.last_block_mark != (sectioni, statementi, wordi):
                     self.last_block_mark = (sectioni, statementi, wordi)
                     need_check_current_sound_file = True

@@ -555,7 +555,7 @@ class Library():
             col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK
             if self.last_pos != (col, row):
                 self.last_pos = (col, row)
-                (shelfi, booki, pagei) = self.pos_to_mark.get((row, col), (-1, -1, -1))
+                (shelfi, booki, pagei) = self.pos_to_mark.get((row, col), self.last_block_mark)
                 if self.last_block_mark != (shelfi, booki, pagei):
                     self.last_block_mark = (shelfi, booki, pagei)
                     need_check_current_sound_file = True
