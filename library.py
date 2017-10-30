@@ -299,7 +299,7 @@ class Library():
         return True
 
 
-    def swap_book(self):
+    def swap_page_up(self):
         length = len(self.library['shelfs'])
         if length <= 0:
             return False
@@ -308,13 +308,24 @@ class Library():
         length = len(current_shelf['books'])
         if length <= 0:
             return False
-        current_idx = current_shelf['mark']
-        if current_idx < 1:
+        current_book_idx = current_shelf['mark']
+        if current_book_idx < 1:
             return False
-        current_shelf['mark'] = current_idx-1
+        current_shelf['mark'] = current_book_idx - 1
+        current_book = current_shelf['books'][current_book_idx]
+        length = len(current_book['pages'])
+        if length <= 0:
+            return False
+        current_idx = current_book['mark']
 
-        a, b = current_shelf['books'][current_idx-1], current_shelf['books'][current_idx]
-        current_shelf['books'][current_idx-1], current_shelf['books'][current_idx] = b, a
+        previous_book = current_shelf['books'][current_book_idx-1]
+        length = len(previous_book['pages'])
+        if length <= 0:
+            return False
+        previous_idx = previous_book['mark']
+
+        a, b = current_book['pages'][current_idx], previous_book['pages'][previous_idx]
+        current_book['pages'][current_idx], previous_book['pages'][previous_idx] = b, a
         return True
 
 
@@ -363,7 +374,7 @@ class Library():
         return True
 
 
-    def swap_page(self):
+    def swap_page_right(self):
         length = len(self.library['shelfs'])
         if length <= 0:
             return False
@@ -454,7 +465,7 @@ class Library():
             elif event.key == pygame.K_1:
                 self.new_page()
                 feedback += "new page. "
-
+            # Navigation
             if event.key == pygame.K_h:
                 if self.prev_page():
                     feedback += "previous page. "
@@ -487,6 +498,12 @@ class Library():
                 else:
                     feedback += "previous book. "
                     need_check_current_sound_file = True
+            # swap
+            elif event.key == pygame.K_t:
+                if event.mod & pygame.KMOD_CTRL:
+                    self.swap_page_up()
+                else:
+                    self.swap_page_right()
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
@@ -545,9 +562,9 @@ class Library():
             elif choice == 3:
                 # Swap block (b1+b3)
                 if event.button == 5:
-                    self.swap_page()
+                    self.swap_page_right()
                 elif event.button == 4:
-                    self.swap_book()
+                    self.swap_page_up()
 
         elif event.type == pygame.MOUSEMOTION:
             #Nav by point to

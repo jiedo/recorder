@@ -422,7 +422,7 @@ class Page():
         return True
 
 
-    def swap_statement(self):
+    def swap_word_up(self):
         length = len(self.page['sections'])
         if length <= 0:
             return False
@@ -431,13 +431,24 @@ class Page():
         length = len(current_section['statements'])
         if length <= 0:
             return False
-        current_idx = current_section['mark']
-        if current_idx < 1:
+        current_statement_idx = current_section['mark']
+        if current_statement_idx < 1:
             return False
-        current_section['mark'] = current_idx - 1
+        current_section['mark'] = current_statement_idx - 1
+        current_statement = current_section['statements'][current_statement_idx]
+        length = len(current_statement['words'])
+        if length <= 0:
+            return False
+        current_idx = current_statement['mark']
 
-        a, b = current_section['statements'][current_idx-1], current_section['statements'][current_idx]
-        current_section['statements'][current_idx-1], current_section['statements'][current_idx] = b, a
+        previous_statement = current_section['statements'][current_statement_idx-1]
+        length = len(previous_statement['words'])
+        if length <= 0:
+            return False
+        previous_idx = previous_statement['mark']
+
+        a, b = current_statement['words'][current_idx], previous_statement['words'][previous_idx]
+        current_statement['words'][current_idx], previous_statement['words'][previous_idx] = b, a
         return True
 
 
@@ -486,7 +497,7 @@ class Page():
         return True
 
 
-    def swap_word(self):
+    def swap_word_right(self):
         length = len(self.page['sections'])
         if length <= 0:
             return False
@@ -605,6 +616,12 @@ class Page():
                 else:
                     feedback += "next statements. "
                     need_check_current_sound_file = True
+            # swap
+            elif event.key == pygame.K_t:
+                if event.mod & pygame.KMOD_CTRL:
+                    self.swap_word_up()
+                else:
+                    self.swap_word_right()
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             b1, b2, b3 = pygame.mouse.get_pressed()
@@ -663,9 +680,9 @@ class Page():
             elif choice == 3:
                 # Swap block
                 if event.button == 5:
-                    self.swap_word()
+                    self.swap_word_right()
                 elif event.button == 4:
-                    self.swap_statement()
+                    self.swap_word_up()
 
         elif event.type == pygame.MOUSEMOTION:
             #Nav by point to

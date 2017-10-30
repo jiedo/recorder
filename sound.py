@@ -99,7 +99,7 @@ class Player():
         self.stream = None
         self.wf = None
         self.volume = self.mixer.getvolume()[0]
-        self.speed = 30
+        self.speed = 60
         self.point = 0
         self.latest_volume = 0
         self.latest_speed = 0
