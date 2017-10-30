@@ -38,7 +38,8 @@ class Library():
     def load_library(self):
         try:
             self.library = json.loads(open("library.json").read())
-        except:
+        except Exception, e:
+            print "load library error:", e
             self.library = {}
         self.rect_need_draw = []
 
@@ -251,7 +252,7 @@ class Library():
         if current_idx >= length:
             return False
         self.library['mark'] = current_idx
-        return True
+        return "%d of %d" % (current_idx, length)
 
     def prev_shelf(self):
         length = len(self.library['shelfs'])
@@ -262,7 +263,7 @@ class Library():
         if current_idx < 0:
             return False
         self.library['mark'] = current_idx
-        return True
+        return "%d of %d" % (current_idx, length)
 
 
     def next_book(self):
@@ -279,7 +280,7 @@ class Library():
         if current_idx >= length:
             return False
         current_shelf['mark'] = current_idx
-        return True
+        return "%d of %d" % (current_idx, length)
 
 
     def prev_book(self):
@@ -296,7 +297,7 @@ class Library():
         if current_idx < 0:
             return False
         current_shelf['mark'] = current_idx
-        return True
+        return "%d of %d" % (current_idx, length)
 
 
     def swap_page_up(self):
@@ -349,7 +350,7 @@ class Library():
         if current_idx >= length:
             return False
         current_book['mark'] = current_idx
-        return True
+        return "%d of %d" % (current_idx, length)
 
 
     def prev_page(self):
@@ -371,7 +372,7 @@ class Library():
         if current_idx < 0:
             return False
         current_book['mark'] = current_idx
-        return True
+        return "%d of %d" % (current_idx, length)
 
 
     def swap_page_right(self):
@@ -455,7 +456,7 @@ class Library():
     def on_event(self, event):
         feedback = ""
         need_check_current_sound_file = False
-        if event.type == pygame.KEYUP:
+        if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_3:
                 self.new_shelf()
                 feedback += "new shelf. "
@@ -467,36 +468,42 @@ class Library():
                 feedback += "new page. "
             # Navigation
             if event.key == pygame.K_h:
-                if self.prev_page():
-                    feedback += "previous page. "
+                tip = self.prev_page()
+                if tip:
+                    feedback += "page " + tip
                     need_check_current_sound_file = True
                 else:
                     feedback += "none. "
             elif event.key == pygame.K_l:
-                if self.next_page():
-                    feedback += "next page. "
+                tip = self.next_page()
+                if tip:
+                    feedback += "page " + tip
                     need_check_current_sound_file = True
                 else:
                     feedback += "none. "
             if event.key == pygame.K_k:
-                if not self.prev_book():
-                    if self.prev_shelf():
-                        feedback += "previous shelf. "
+                tip = self.prev_book()
+                if not tip:
+                    tip = self.prev_shelf()
+                    if tip:
+                        feedback += "shelf " + tip
                         need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 else:
-                    feedback += "previous book. "
+                    feedback += "book " + tip
                     need_check_current_sound_file = True
             elif event.key == pygame.K_j:
-                if not self.next_book():
-                    if self.next_shelf():
-                        feedback += "previous shelf. "
+                tip = self.next_book()
+                if not tip:
+                    tip = self.next_shelf()
+                    if tip:
+                        feedback += "shelf " + tip
                         need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 else:
-                    feedback += "previous book. "
+                    feedback += "book " + tip
                     need_check_current_sound_file = True
             # swap
             elif event.key == pygame.K_t:
@@ -518,38 +525,44 @@ class Library():
             if choice == 0:
                 # Nav page (!b1+!b3)
                 if event.button == 5:
-                    if self.next_page():
-                        feedback += "next page. "
+                    tip = self.next_page()
+                    if tip:
+                        feedback += "page " + tip
                         need_check_current_sound_file = True
                     else:
                         feedback += "none. "
                 elif event.button == 4:
-                    if self.prev_page():
-                        feedback += "previous page. "
+                    tip = self.prev_page()
+                    if tip:
+                        feedback += "page " + tip
                         need_check_current_sound_file = True
                     else:
                         feedback += "none. "
             elif choice == 1:
                 # Nav book (!b1+b3)
                 if event.button == 5:
-                    if not self.next_book():
-                        if self.next_shelf():
-                            feedback += "next shelf. "
+                    tip = self.next_book()
+                    if not tip:
+                        tip = self.next_shelf()
+                        if tip:
+                            feedback += "shelf " + tip
                             need_check_current_sound_file = True
                         else:
                             feedback += "none. "
                     else:
-                        feedback += "next book. "
+                        feedback += "book " + tip
                         need_check_current_sound_file = True
                 elif event.button == 4:
-                    if not self.prev_book():
-                        if self.prev_shelf():
-                            feedback += "previous shelf. "
+                    tip = self.prev_book()
+                    if not tip:
+                        tip = self.prev_shelf()
+                        if tip:
+                            feedback += "shelf " + tip
                             need_check_current_sound_file = True
                         else:
                             feedback += "none. "
                     else:
-                        feedback += "previous book. "
+                        feedback += "book " + tip
                         need_check_current_sound_file = True
             elif choice == 2:
                 # Create (b1+!b3)

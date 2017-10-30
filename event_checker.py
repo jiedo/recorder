@@ -34,7 +34,7 @@ class EventChecker():
     def do(self, event):
         action = EVENT_NONE
         pos = (0, 0)
-        if event.type == pygame.KEYUP:
+        if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 action = EVENT_ENTER
             elif event.key == pygame.K_ESCAPE:

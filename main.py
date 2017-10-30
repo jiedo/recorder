@@ -6,7 +6,8 @@ import sys
 import os
 
 from library import Library
-from page import Page, VoicePageLoader, WikiPageLoader
+from page import Page
+from page_loader import VoicePageLoader, WikiPageLoader, DirPageLoader
 from sound import play, say, Recorder, Player
 import event_checker
 
@@ -96,6 +97,9 @@ def main():
                     elif current_page['type'] == 'Wiki':
                         say("load page wiki")
                         PageLoader = WikiPageLoader
+                    elif current_page['type'] == 'Dir':
+                        say("load page dir")
+                        PageLoader = DirPageLoader
                     else:
                         say("ignored page type: %s" % current_page['type'])
                         continue
