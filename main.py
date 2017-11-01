@@ -4,10 +4,11 @@ import pygame
 import time
 import sys
 import os
+import copy
 
 from library import Library
 from page import Page
-from page_loader import VoicePageLoader, WikiPageLoader, DirPageLoader
+from page_loader import VoicePageLoader, WikiPageLoader, DirPageLoader, LdocePageListLoader, LdocePageLoader
 from sound import play, say, Recorder, Player
 import event_checker
 
@@ -52,9 +53,8 @@ def main():
     display_need_reflash = True
     done = 0
     start_time = 0
-
+    last_page = None
     event_checker_obj = event_checker.EventChecker()
-
     last_flash_display_time = time.time()
     while not done:
         if mode == SUBMODE_PLAYSOUND:
@@ -100,6 +100,9 @@ def main():
                     elif current_page['type'] == 'Dir':
                         say("load page dir")
                         PageLoader = DirPageLoader
+                    elif current_page['type'] == 'Ldoce':
+                        say("load page Ldoce")
+                        PageLoader = LdocePageListLoader
                     else:
                         say("ignored page type: %s" % current_page['type'])
                         continue
@@ -115,13 +118,27 @@ def main():
                 elif action == event_checker.EVENT_LEFT_CLICK or action == event_checker.EVENT_ENTER:
                     current_word = page.get_current_word()
                     if current_word['type'] == 'Close':
-                        mode = MODE_LIBRARY
-                        page.store_page()
-                        say("back to library")
+                        if current_page['type'] == 'Ldoce':
+                            say("load page Ldoce")
+                            PageLoader = LdocePageListLoader
+                            page.load_page(PageLoader(current_page))
+                            page.page = last_page
+                        else:
+                            mode = MODE_LIBRARY
+                            page.store_page()
+                            say("back to library")
                     elif current_word['type'] == 'Word':
                         say(current_word['title'])
                     elif current_word['type'] == 'Time':
                         say(time.ctime())
+                    elif current_word['type'] == 'Mp3':
+                        say("play mp3.")
+                    elif current_word['type'] == 'Ldoce':
+                        PageLoader = LdocePageLoader
+                        inner_page = copy.deepcopy(current_page)
+                        inner_page["data"] = current_word["data"]
+                        last_page = page.page
+                        page.load_page(PageLoader(inner_page))
 
             elif mode == SUBMODE_PLAYSOUND:
                 feedback = player.on_action(action, pos, event)

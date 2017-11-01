@@ -154,35 +154,37 @@ class Page():
     def new_section(self):
         self.page['max_section_id'] += 1
         section = {
-            'mark': 0,
+            'mark': -1,
             'id': self.page['max_section_id'],
             'title': "section-%d" % self.page['max_section_id'],
             'statements': []
         }
-        current_idx = self.page['mark']
+        current_idx = self.page['mark']+1
+        self.page['mark'] = current_idx
         self.page['sections'][current_idx:current_idx] = [section]
 
 
     def new_statement(self):
-        current_section_idx = self.page['mark']
         if len(self.page['sections']) == 0:
             self.new_section()
+        current_section_idx = self.page['mark']
         current_section = self.page['sections'][current_section_idx]
         self.page['max_statement_id'] += 1
         statement = {
-            'mark': 0,
+            'mark': -1,
             'id': self.page['max_statement_id'],
             'title': "statement-%d" % self.page['max_statement_id'],
             'words': []
         }
-        current_idx = current_section['mark']
+        current_idx = current_section['mark']+1
+        current_section['mark'] = current_idx
         current_section['statements'][current_idx:current_idx] = [statement]
 
 
     def new_word(self):
-        current_section_idx = self.page['mark']
         if len(self.page['sections']) == 0:
             self.new_section()
+        current_section_idx = self.page['mark']
         current_section = self.page['sections'][current_section_idx]
         if len(current_section['statements']) == 0:
             self.new_statement()
@@ -202,7 +204,8 @@ class Page():
             'section-id': current_section['id'],
             'statement-id': current_statement['id'],
         }
-        current_idx = current_statement['mark']
+        current_idx = current_statement['mark']+1
+        current_statement['mark'] = current_idx
         current_statement['words'][current_idx:current_idx] = [word]
 
 

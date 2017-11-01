@@ -148,19 +148,20 @@ class Library():
     def new_shelf(self):
         if 'shelfs' not in self.library:
             self.library['shelfs'] = []
-            self.library['mark'] = 0
+            self.library['mark'] = -1
             self.library['max_shelf_id'] = 1
             self.library['max_book_id'] = 0
             self.library['max_page_id'] = 0
         else:
             self.library['max_shelf_id'] += 1
         shelf = {
-            'mark': 0,
+            'mark': -1,
             'id': self.library['max_shelf_id'],
             'title': "shelf-%d" % self.library['max_shelf_id'],
             'books': []
         }
-        current_idx = self.library['mark']
+        current_idx = self.library['mark']+1
+        self.library['mark'] = current_idx
         self.library['shelfs'][current_idx:current_idx] = [shelf]
 
 
@@ -171,19 +172,19 @@ class Library():
         current_shelf = self.library['shelfs'][current_shelf_idx]
         self.library['max_book_id'] += 1
         book = {
-            'mark': 0,
+            'mark': -1,
             'id': self.library['max_book_id'],
             'title': "book-%d" % self.library['max_book_id'],
             'pages': []
         }
-        current_idx = current_shelf['mark']
+        current_idx = current_shelf['mark']+1
+        current_shelf['mark'] = current_idx
         current_shelf['books'][current_idx:current_idx] = [book]
 
 
     def new_page(self):
         if 'shelfs' not in self.library:
             self.new_shelf()
-
         current_shelf_idx = self.library['mark']
         current_shelf = self.library['shelfs'][current_shelf_idx]
         if len(current_shelf['books']) == 0:
@@ -228,7 +229,8 @@ class Library():
             'max_statement_id': 1,
             'max_word_id': 1,
         }
-        current_idx = current_book['mark']
+        current_idx = current_book['mark']+1
+        current_book['mark'] = current_idx
         current_book['pages'][current_idx:current_idx] = [{
             "id": self.library['max_page_id'],
             "type": "Voice",
