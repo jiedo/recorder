@@ -61,6 +61,7 @@ class PageLoader(object):
         current_idx = self.page['mark']+1
         self.page['mark'] = current_idx
         self.page['sections'][current_idx:current_idx] = [section]
+        return section
 
     def new_statement(self):
         if len(self.page['sections']) == 0:
@@ -123,7 +124,7 @@ class WikiPageLoader(PageLoader):
         PageLoader.__init__(self, page)
         self.page['type'] = "Wiki"
 
-    def load_page(self):
+    def load_page(self, cols):
         for i in range(8):
             self.page['mark'] = i
             self.new_section()
@@ -149,11 +150,11 @@ class VoicePageLoader(PageLoader):
     def __init__(self, page):
         PageLoader.__init__(self, page)
         self.pageid = page['id']
-        self.page['type'] = "Voice"
+        # self.page['type'] = "Voice"
 
-    def load_page(self):
+    def load_page(self, cols):
         self.page = json.loads(open("pages/page-%d.json" % self.pageid).read())
-        self.page['type'] = "Voice"
+        # self.page['type'] = "Voice"
         return self.page
 
     def store_page(self):
@@ -162,6 +163,10 @@ class VoicePageLoader(PageLoader):
              "w").write(page_string)
 
     def get_word_sound_filename(self, word):
+        if self.page['type'] != "Voice":
+            filename = tts(word['title'])
+            return filename, int(time.time() * 1000)
+
         shelf_id, book_id, page_id, word_id, create_time = (self.page['shelf-id'], self.page['book-id'], self.page['id'],
                                                             word['id'], word['create_time'])
         filename = "sounds/shelf.%d-book.%d-page.%d-word.%d.wav" % (shelf_id, book_id, page_id, word_id)
@@ -173,7 +178,7 @@ class DirPageLoader(PageLoader):
         PageLoader.__init__(self, page)
         self.page['type'] = "Dir"
 
-    def load_page(self):
+    def load_page(self, cols):
         self.new_section()
         self.new_statement()
 
@@ -209,15 +214,21 @@ class LdocePageListLoader(PageLoader):
         wordlist_filename = self.page['data']
         self.wordlist = json.loads(open(wordlist_filename).read())
 
-    def load_page(self):
-        self.new_section()
-        statement = self.new_statement()
-        for word_title, word_path in self.wordlist:
+    def load_page(self, cols):
+        section = self.new_section()
+        statement = None
+        for i, (word_title, word_path) in enumerate(self.wordlist):
+            if i % cols == 0:
+                if statement:
+                    statement['mark'] = 0
+                statement = self.new_statement()
             word = self.new_word()
             word['title'] = word_title
             word['data'] = word_path
             word['type'] = "Ldoce"
-        statement['mark'] = 0
+        if statement:
+            statement['mark'] = 0
+        section['mark'] = 0
         return self.page
 
     def store_page(self):
@@ -237,22 +248,46 @@ class LdocePageLoader(PageLoader):
         self.page['type'] = "Ldoce"
         path = self.page['data'].replace("dict://", "")
         data, mime = ldoce5.get_content(path)
+        open(".%s.html" % path, "w").write(data)
         if not data:
             return
         root = BeautifulSoup(data, "lxml")
-        for c in root.find_all("a"):
-            if "class" in c.attrs and "audio" in c.attrs['class']:
-                self.wordlist += [(c.text, c.attrs['href'])]
+        for tag in root.find_all(["span", "a"]):
+            if tag.name == "span" and "class" in tag.attrs:
+                for c in ["def", "exp",
+                          "collo", "gloss",
+                          "colloc", "collgloss",
+                          "base"]:
+                     if c in tag.attrs['class']:
+                         self.wordlist += [("Word", tag.text, "#")]
+                         break
 
-    def load_page(self):
-        self.new_section()
+            if tag.name == "a" and "class" in tag.attrs and "audio" in tag.attrs['class']:
+                self.wordlist += [("Mp3", tag.text, tag.attrs['href'])]
+
+    def load_page(self, cols):
+        section = self.new_section()
         statement = self.new_statement()
-        for word_title, word_path in self.wordlist:
+        for word_type, word_title, word_path in self.wordlist:
             word = self.new_word()
             word['title'] = word_title
             word['data'] = word_path
-            word['type'] = "Mp3"
+            word['type'] = word_type
         statement['mark'] = 0
+
+        # statement = None
+        # for word_type, word_title, word_path in self.wordlist:
+        #     if word_type == "Word":
+        #         if statement:
+        #             statement['mark'] = 0
+        #         statement = self.new_statement()
+        #     word = self.new_word()
+        #     word['title'] = word_title
+        #     word['data'] = word_path
+        #     word['type'] = word_type
+        # if statement:
+        #     statement['mark'] = 0
+        # section['mark'] = 0
         return self.page
 
     def store_page(self):
@@ -261,7 +296,7 @@ class LdocePageLoader(PageLoader):
              "w").write(page_string)
 
     def get_word_sound_filename(self, word):
-        if "data" not in word:
+        if word["type"] != "Mp3":
             filename = tts(word['title'])
             return filename, int(time.time() * 1000)
 

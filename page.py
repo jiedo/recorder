@@ -11,7 +11,7 @@ class Page():
 
     def load_page(self, page_loader):
         self.page_loader = page_loader
-        self.page = self.page_loader.load_page()
+        self.page = self.page_loader.load_page(self.WIN_WIDTH / self.SIZEBLOCK)
         self.rect_need_draw = []
         self.last_block_pos = (0, 0)
         self.last_block_mark = (0, 0, 0)
@@ -532,6 +532,9 @@ class Page():
                 elif event.button == 4:
                     self.new_statement()
                     feedback += "new statements. "
+                else:
+                    # only left click
+                    need_check_current_sound_file = True
             elif choice == 3:
                 # Swap block
                 if event.button == 5:
@@ -539,7 +542,7 @@ class Page():
                 elif event.button == 4:
                     self.swap_word_up()
 
-        elif event.type == pygame.MOUSEMOTION:
+        elif False and event.type == pygame.MOUSEMOTION:
             #Nav by point to
             x, y = event.pos
             col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK

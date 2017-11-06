@@ -25,7 +25,7 @@ def tts(phrase):
     voice = "en"
     amplitude = 60
     pitch_adjustment = 50
-    words_per_minute = 240
+    words_per_minute = 200
 
     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
         fname = f.name
@@ -191,17 +191,35 @@ class Player():
 
         elif (action == event_checker.EVENT_WHEEL_UP or action == event_checker.EVENT_WHEEL_DOWN) or (
                 action == event_checker.EVENT_KEYUP or action == event_checker.EVENT_KEYDOWN):
+
             if action == event_checker.EVENT_WHEEL_UP or action == event_checker.EVENT_KEYUP:
                 dy = 10
             elif action == event_checker.EVENT_WHEEL_DOWN or action == event_checker.EVENT_KEYDOWN:
                 dy = -10
-            self.speed += int(dy)
-            if self.speed < 0:
-                self.speed = 0
-            elif self.speed > 100:
-                self.speed = 100
 
-            self.init_stream()
+            if event.button3 and not event.button1:
+                self.speed += int(dy)
+                if self.speed < 0:
+                    self.speed = 0
+                elif self.speed > 100:
+                    self.speed = 100
+                self.init_stream()
+
+            if not event.button1 and not event.button3:
+                self.volume += int(dy)
+                if self.volume < 0:
+                    self.volume = 0
+                elif self.volume > 100:
+                    self.volume = 100
+                self.mixer.setvolume(self.volume)
+
+            if event.button1 and not event.button3:
+                self.point += int(-dy)
+                if self.point < 0:
+                    self.point = 0
+                elif self.point > 100:
+                    self.point = 100
+                self.wf.setpos(int(self.point * self.nframes / 100))
 
         elif action == event_checker.EVENT_BOTH:
             say("press both ")

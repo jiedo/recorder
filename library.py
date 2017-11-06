@@ -581,7 +581,7 @@ class Library():
                 elif event.button == 4:
                     self.swap_page_up()
 
-        elif event.type == pygame.MOUSEMOTION:
+        elif False and event.type == pygame.MOUSEMOTION:
             #Nav by point to
             x, y = event.pos
             col, row = x/self.SIZEBLOCK, y/self.SIZEBLOCK

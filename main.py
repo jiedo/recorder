@@ -111,28 +111,29 @@ def main():
 
             elif mode == MODE_PAGE:
                 feedback, filename = page.on_event(event)
-                if action == event_checker.EVENT_QUIT:
-                    mode = MODE_LIBRARY
-                    page.store_page()
-                    say("back to library")
+                if action == event_checker.EVENT_QUIT or (action == event_checker.EVENT_BOTH and current_page['type'] != 'Voice'):
+                    if last_page and current_page['type'] == 'Ldoce':
+                        say("load page Ldoce")
+                        PageLoader = LdocePageListLoader
+                        page.load_page(PageLoader(current_page))
+                        page.page = last_page
+                        last_page = None
+                    else:
+                        mode = MODE_LIBRARY
+                        page.store_page()
+                        say("back to library")
+                    continue
+
                 elif action == event_checker.EVENT_LEFT_CLICK or action == event_checker.EVENT_ENTER:
                     current_word = page.get_current_word()
                     if current_word['type'] == 'Close':
-                        if current_page['type'] == 'Ldoce':
-                            say("load page Ldoce")
-                            PageLoader = LdocePageListLoader
-                            page.load_page(PageLoader(current_page))
-                            page.page = last_page
-                        else:
-                            mode = MODE_LIBRARY
-                            page.store_page()
-                            say("back to library")
-                    elif current_word['type'] == 'Word':
-                        say(current_word['title'])
+                        mode = MODE_LIBRARY
+                        page.store_page()
+                        say("back to library")
+                        continue
                     elif current_word['type'] == 'Time':
+                        # fixme: move to page-loader
                         say(time.ctime())
-                    elif current_word['type'] == 'Mp3':
-                        say("play mp3.")
                     elif current_word['type'] == 'Ldoce':
                         PageLoader = LdocePageLoader
                         inner_page = copy.deepcopy(current_page)
@@ -141,7 +142,7 @@ def main():
                         page.load_page(PageLoader(inner_page))
 
             elif mode == SUBMODE_PLAYSOUND:
-                feedback = player.on_action(action, pos, event)
+                feedback = player.on_action(action, pos, event_checker_obj)
                 if action == event_checker.EVENT_RIGHT_CLICK or action == event_checker.EVENT_QUIT:
                     mode = last_mode
                     say("quit play")
