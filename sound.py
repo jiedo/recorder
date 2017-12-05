@@ -94,7 +94,7 @@ class Player():
         self.color_volume_bar = (150, 150, 150)
         self.color_volume_point = (20, 80, 80)
 
-        self.mplayer = mplayer.Player()
+        self.mplayer = mplayer.Player(('-vo', 'null'))
         self.last_action = event_checker.EVENT_NONE
         self.mixer = alsaaudio.Mixer()
         self.volume = self.mixer.getvolume()[0]

@@ -179,22 +179,25 @@ class DirPageLoader(PageLoader):
         self.page['type'] = "Dir"
 
     def load_page(self, cols):
-        self.new_section()
-        self.new_statement()
-
+        section = self.new_section()
+        music_file_types = [".wav", "flac", ".mp3", ".ape"]
         for root, dirs, files in os.walk(self.page['data'], topdown=False):
-            # for name in dirs:
-            #     word = self.new_word()
-            #     word['title'] = name
-            #     print "dir:", name
             names = [name for name in files]
             names.sort()
             names.reverse()
+            added = False
             for name in names:
-                if name[-8:] == "-100.wav":
+                if name[-4:] in music_file_types:
+                    added = True
+            if added > 0:
+                statement = self.new_statement()
+            for name in names:
+                if name[-4:] in music_file_types:
                     word = self.new_word()
-                    word['title'] = name
-
+                    word['title'] = os.path.join(root, name)
+            if added > 0:
+                statement['mark'] = 0
+        section['mark'] = 0
         return self.page
 
     def store_page(self):
@@ -203,8 +206,7 @@ class DirPageLoader(PageLoader):
              "w").write(page_string)
 
     def get_word_sound_filename(self, word):
-        filename = os.path.join(self.page['data'], word['title'])
-        return filename, int(time.time() * 1000)
+        return word['title'], int(time.time() * 1000)
 
 
 class LdocePageListLoader(PageLoader):
