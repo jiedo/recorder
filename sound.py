@@ -9,6 +9,7 @@ import pygame
 import time
 import alsaaudio
 import event_checker
+import mplayer
 
 
 def play(filename):
@@ -93,76 +94,36 @@ class Player():
         self.color_volume_bar = (150, 150, 150)
         self.color_volume_point = (20, 80, 80)
 
+        self.mplayer = mplayer.Player()
         self.last_action = event_checker.EVENT_NONE
-        self.audio_object = pyaudio.PyAudio()
         self.mixer = alsaaudio.Mixer()
-        self.stream = None
-        self.wf = None
         self.volume = self.mixer.getvolume()[0]
         self.speed = 30
         self.point = 0
         self.latest_volume = 0
         self.latest_speed = 0
         self.latest_point = 0
-
-
-    def play_callback(self, in_data, frame_count, time_info, status):
-        if not self.wf:
-            return ("", pyaudio.paAbort)
-
-        data = self.wf.readframes(frame_count)
-        self.point = 100 * self.wf.tell() / self.nframes
-        return (data, pyaudio.paContinue)
-
+        self.filename = None
 
     def load(self, filename):
-        if self.stream:
-            self.stream.stop_stream()
-            self.stream.close()
-            self.stream = None
-        if self.wf:
-            self.wf.close()
-
-        self.wf = wave.open(filename, 'rb')
-        self.nframes = self.wf.getnframes()
-        self.nchannels = self.wf.getnchannels()
-        self.nsampwidth = self.wf.getsampwidth()
-        self.nframerate = self.wf.getframerate()
         self.point = 0
+        self.filename = filename
         self.latest_point = 0
-        self.init_stream()
-
-
-    def init_stream(self):
-        if self.stream:
-            self.stream.stop_stream()
-            self.stream.close()
-            self.stream = None
-        self.stream = self.audio_object.open(format=self.audio_object.get_format_from_width(self.nsampwidth),
-                                  channels=self.nchannels,
-                                  rate=int(self.nframerate * (0.7 + self.speed / 100.0)),
-                                  output=True,
-                                  stream_callback=self.play_callback)
-
+        self.mplayer.stop()
+        self.mplayer.loadfile(self.filename)
+        self.mplayer.pause()
 
     def on_action(self, action, pos, event):
         k = 0.618
-
         if action == event_checker.EVENT_RIGHT_CLICK:
-            self.stream.stop_stream()
-            self.stream.close()
-            self.wf.close()
-            self.stream = None
-            self.wf = None
+            self.mplayer.stop()
         elif action == event_checker.EVENT_LEFT_CLICK or action == event_checker.EVENT_SPACE:
-            if self.stream.is_active():
-                self.stream.stop_stream()
-            elif not self.stream.is_stopped():
-                self.stream.stop_stream()
-                self.wf.rewind()
-                self.point = 0
+            if self.mplayer.time_pos and self.mplayer.time_pos > 0:
+                self.mplayer.pause()
             else:
-                self.stream.start_stream()
+                self.mplayer.loadfile(self.filename)
+                self.mplayer.pause()
+                self.point = 0
 
         elif action == event_checker.EVENT_LEFT_DRAG:
             x, y = pos
@@ -174,7 +135,7 @@ class Player():
                 self.point = 0
             elif self.point > 100:
                 self.point = 100
-            self.wf.setpos(int(self.point * self.nframes / 100))
+            self.mplayer.percent_pos = self.point
 
             dy = 100*y/(self.height * (1-k) * (1-k) * (1-k))
             if self.last_action != action:
@@ -203,7 +164,7 @@ class Player():
                     self.speed = 0
                 elif self.speed > 100:
                     self.speed = 100
-                self.init_stream()
+                self.mplayer.speed = (0.7 + self.speed / 100.0)
 
             if not event.button1 and not event.button3:
                 self.volume += int(dy)
@@ -214,28 +175,25 @@ class Player():
                 self.mixer.setvolume(self.volume)
 
             if event.button1 and not event.button3:
-                self.point += int(-dy)
+                self.point += int(-dy/5)
                 if self.point < 0:
                     self.point = 0
                 elif self.point > 100:
                     self.point = 100
-                self.wf.setpos(int(self.point * self.nframes / 100))
+                self.mplayer.percent_pos = self.point
 
         elif action == event_checker.EVENT_BOTH:
-            say("press both ")
+            say("press both")
         elif action == event_checker.EVENT_BOTH_RELEASE or action == event_checker.EVENT_ENTER:
-            if self.stream.is_active():
-                self.stream.stop_stream()
-            elif not self.stream.is_stopped():
-                self.stream.stop_stream()
-            self.wf.rewind()
+            if self.mplayer.time_pos and self.mplayer.time_pos > 0:
+                self.mplayer.stop()
             self.point = 0
         self.last_action = action
 
 
     def draw_player(self, surface):
+        self.point = self.mplayer.percent_pos
         k = 0.618
-
         # board
         color = self.color_board
         top = self.height * (1-k) * k
