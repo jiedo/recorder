@@ -13,6 +13,7 @@ EVENT_KEYUP = "keyup"
 EVENT_KEYDOWN = "keydown"
 EVENT_WHEEL_UP = "wheel-up"
 EVENT_WHEEL_DOWN = "wheel-down"
+EVENT_MID_CLICK = "mid-click"
 EVENT_LEFT_CLICK = "left-click"
 EVENT_RIGHT_CLICK = "right-click"
 EVENT_BOTH_RELEASE = "!both"
@@ -23,6 +24,7 @@ EVENT_MOVE = "move"
 
 class EventChecker():
     def __init__(self):
+        self.pure_mid_button_up = False
         self.pure_left_button_up = False
         self.pure_right_button_up = False
         self.pure_left_right_button_up = False
@@ -65,10 +67,17 @@ class EventChecker():
                 self.pure_left_button_up = True
             if button2 or button3 or event.button != 1:
                 self.pure_left_button_up = False
+
+            if event.button == 2:
+                self.pure_mid_button_up = True
+            if button1 or button3 or event.button != 2:
+                self.pure_mid_button_up = False
+
             if event.button == 3:
                 self.pure_right_button_up = True
             if button1 or button2 or event.button != 3:
                 self.pure_right_button_up = False
+
             # press button1 + button3 at the sametime, beside, without any other button pressed
             if button3 and button1 and (event.button == 1 or event.button == 3):
                 self.pure_left_right_button_up = True
@@ -100,6 +109,11 @@ class EventChecker():
             if event.button == 1 and self.pure_left_button_up:
                 self.pure_left_button_up = False
                 action = EVENT_LEFT_CLICK
+
+            # only mid click
+            if event.button == 2 and self.pure_mid_button_up:
+                self.pure_mid_button_up = False
+                action = EVENT_MID_CLICK
 
             # only right click
             if event.button == 3 and self.pure_right_button_up:

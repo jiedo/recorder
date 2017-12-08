@@ -193,6 +193,8 @@ class Player():
 
     def draw_player(self, surface):
         self.point = self.mplayer.percent_pos
+        if not self.point:
+            self.point = 0
         k = 0.618
         # board
         color = self.color_board

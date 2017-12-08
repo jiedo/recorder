@@ -111,7 +111,7 @@ def main():
 
             elif mode == MODE_PAGE:
                 feedback, filename = page.on_event(event)
-                if action == event_checker.EVENT_QUIT or (action == event_checker.EVENT_BOTH and current_page['type'] != 'Voice'):
+                if action == event_checker.EVENT_QUIT or action == event_checker.EVENT_MID_CLICK:
                     if last_page and current_page['type'] == 'Ldoce':
                         say("load page Ldoce")
                         PageLoader = LdocePageListLoader
